@@ -1,0 +1,340 @@
+---
+title: "DDA 3R/4R ratio calculation"
+author: "Christoph N. Schlaffner"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r, include=FALSE}
+options(stringsAsFactors = FALSE)
+library(stringr)
+library(ggplot2)
+
+isoformindices <- function(columnnames) {
+  colidxs <- c()
+  isoforms <- c("0N3R","0N4R","1N3R","1N4R","2N3R","2N4R")
+  for(i in isoforms) {
+    colidxs <- c(colidxs,which(str_detect(columnnames,i)))
+  }
+  colidxs <- unique(colidxs)
+  colidxs[order(colidxs)]
+  return(colidxs)
+}
+
+peptideindices <- function(columnnames) {
+  colidxs <- c()
+  isoforms <- c("HVPGGGSVQIVYK","VQIVYKPVDLSK","LDLSNVQSK")
+  for(i in isoforms) {
+    colidxs <- c(colidxs,which(str_detect(columnnames,i)))
+  }
+  colidxs <- unique(colidxs)
+  colidxs[order(colidxs)]
+  return(colidxs)
+}
+
+peptideindices4R <- function(columnnames) {
+  colidxs <- c()
+  isoforms <- c("HVPGGGSVQIVYK","LDLSNVQSK")
+  for(i in isoforms) {
+    colidxs <- c(colidxs,which(str_detect(columnnames,i)))
+  }
+  colidxs <- unique(colidxs)
+  colidxs[order(colidxs)]
+  return(colidxs)
+}
+
+
+infile1 <- "D:/Data/Tau_comparisonpaper/FigureScripts/FINALSet/MSFragger/Mukesh/combined_modified_peptide_AD-CTRL-Re.tsv"
+infile2 <- "D:/Data/Tau_comparisonpaper/FigureScripts/FINALSet/MSFragger/Mukesh/combined_modified_peptide_CBD-CTRL-Re.tsv"
+infile3 <- "D:/Data/Tau_comparisonpaper/FigureScripts/FINALSet/MSFragger/Mukesh/combined_modified_peptide_CTE-CTRL-Re.tsv"
+infile4 <- "D:/Data/Tau_comparisonpaper/FigureScripts/FINALSet/MSFragger/Mukesh/combined_modified_peptide_DLB-CTRL-Re.tsv"
+infile5 <- "D:/Data/Tau_comparisonpaper/FigureScripts/FINALSet/MSFragger/Mukesh/combined_modified_peptide_PiD-CTRL-Re.tsv"
+infile6 <- "D:/Data/Tau_comparisonpaper/FigureScripts/FINALSet/MSFragger/Mukesh/combined_modified_peptide_PSP-FTLD-CTRL-Re.tsv"
+
+indata1 <- read.table(infile1,header=TRUE,sep="\t",quote="\"")
+indata2 <- read.table(infile2,header=TRUE,sep="\t",quote="\"")
+indata3 <- read.table(infile3,header=TRUE,sep="\t",quote="\"")
+indata4 <- read.table(infile4,header=TRUE,sep="\t",quote="\"")
+indata5 <- read.table(infile5,header=TRUE,sep="\t",quote="\"")
+indata6 <- read.table(infile6,header=TRUE,sep="\t",quote="\"")
+
+indata1 <- indata1[,c(1,2,9,11,98:178)]
+indata2 <- indata2[,c(1,2,9,11,74:130)]
+indata3 <- indata3[,c(1,2,9,11,56:94)]
+indata4 <- indata4[,c(1,2,9,11,57:96)]
+indata5 <- indata5[,c(1,2,9,11,61:104)]
+indata6 <- indata6[,c(1,2,9,11,84:150)]
+
+indata1 <- indata1[isoformindices(indata1$Protein.ID),]
+indata2 <- indata2[isoformindices(indata2$Protein.ID),]
+indata3 <- indata3[isoformindices(indata3$Protein.ID),]
+indata4 <- indata4[isoformindices(indata4$Protein.ID),]
+indata5 <- indata5[isoformindices(indata5$Protein.ID),]
+indata6 <- indata6[isoformindices(indata6$Protein.ID),]
+
+indata1 <- indata1[peptideindices(indata1$Peptide.Sequence),]
+indata2 <- indata2[peptideindices(indata2$Peptide.Sequence),]
+indata3 <- indata3[peptideindices(indata3$Peptide.Sequence),]
+indata4 <- indata4[peptideindices(indata4$Peptide.Sequence),]
+indata5 <- indata5[peptideindices(indata5$Peptide.Sequence),]
+indata6 <- indata6[peptideindices(indata6$Peptide.Sequence),]
+
+indata1$Protein.ID <- rep("3R",dim(indata1)[1])
+indata2$Protein.ID <- rep("3R",dim(indata2)[1])
+indata3$Protein.ID <- rep("3R",dim(indata3)[1])
+indata4$Protein.ID <- rep("3R",dim(indata4)[1])
+indata5$Protein.ID <- rep("3R",dim(indata5)[1])
+indata6$Protein.ID <- rep("3R",dim(indata6)[1])
+
+indata1[peptideindices4R(indata1$Peptide.Sequence),]$Protein.ID <- "4R"
+indata2[peptideindices4R(indata2$Peptide.Sequence),]$Protein.ID <- "4R"
+indata3[peptideindices4R(indata3$Peptide.Sequence),]$Protein.ID <- "4R"
+indata4[peptideindices4R(indata4$Peptide.Sequence),]$Protein.ID <- "4R"
+indata5[peptideindices4R(indata5$Peptide.Sequence),]$Protein.ID <- "4R"
+indata6[peptideindices4R(indata6$Peptide.Sequence),]$Protein.ID <- "4R"
+
+
+#indata1.single <- indata1[indata1$Modified.Sequence%in%c("VQIVYKPVDLSK","VQIVYK","HVPGGGSVQIVYKPVDLSK","HVPGGGSVQIVYK","KLDLSNVQSK","LDLSNVQSK"),]
+#indata2.single <- indata2[indata2$Modified.Sequence%in%c("VQIVYKPVDLSK","VQIVYK","HVPGGGSVQIVYKPVDLSK","HVPGGGSVQIVYK","KLDLSNVQSK","LDLSNVQSK"),]
+#indata3.single <- indata3[indata3$Modified.Sequence%in%c("VQIVYKPVDLSK","VQIVYK","HVPGGGSVQIVYKPVDLSK","HVPGGGSVQIVYK","KLDLSNVQSK","LDLSNVQSK"),]
+#indata4.single <- indata4[indata4$Modified.Sequence%in%c("VQIVYKPVDLSK","VQIVYK","HVPGGGSVQIVYKPVDLSK","HVPGGGSVQIVYK","KLDLSNVQSK","LDLSNVQSK"),]
+#indata5.single <- indata5[indata5$Modified.Sequence%in%c("VQIVYKPVDLSK","VQIVYK","HVPGGGSVQIVYKPVDLSK","HVPGGGSVQIVYK","KLDLSNVQSK","LDLSNVQSK"),]
+#indata6.single <- indata6[indata6$Modified.Sequence%in%c("VQIVYKPVDLSK","VQIVYK","HVPGGGSVQIVYKPVDLSK","HVPGGGSVQIVYK","KLDLSNVQSK","LDLSNVQSK"),]
+
+indata1.single <- indata1[indata1$Modified.Sequence%in%c("VQIVYKPVDLSK","VQIVYK","HVPGGGSVQIVYKPVDLSK","KLDLSNVQSK","LDLSNVQSK"),]
+indata2.single <- indata2[indata2$Modified.Sequence%in%c("VQIVYKPVDLSK","VQIVYK","HVPGGGSVQIVYKPVDLSK","KLDLSNVQSK","LDLSNVQSK"),]
+indata3.single <- indata3[indata3$Modified.Sequence%in%c("VQIVYKPVDLSK","VQIVYK","HVPGGGSVQIVYKPVDLSK","KLDLSNVQSK","LDLSNVQSK"),]
+indata4.single <- indata4[indata4$Modified.Sequence%in%c("VQIVYKPVDLSK","VQIVYK","HVPGGGSVQIVYKPVDLSK","KLDLSNVQSK","LDLSNVQSK"),]
+indata5.single <- indata5[indata5$Modified.Sequence%in%c("VQIVYKPVDLSK","VQIVYK","HVPGGGSVQIVYKPVDLSK","KLDLSNVQSK","LDLSNVQSK"),]
+indata6.single <- indata6[indata6$Modified.Sequence%in%c("VQIVYKPVDLSK","VQIVYK","HVPGGGSVQIVYKPVDLSK","KLDLSNVQSK","LDLSNVQSK"),]
+
+#indata1.single <- indata1[indata1$Modified.Sequence%in%c("VQIVYKPVDLSK","KLDLSNVQSK"),]
+#indata2.single <- indata2[indata2$Modified.Sequence%in%c("VQIVYKPVDLSK","KLDLSNVQSK"),]
+#indata3.single <- indata3[indata3$Modified.Sequence%in%c("VQIVYKPVDLSK","KLDLSNVQSK"),]
+#indata4.single <- indata4[indata4$Modified.Sequence%in%c("VQIVYKPVDLSK","KLDLSNVQSK"),]
+#indata5.single <- indata5[indata5$Modified.Sequence%in%c("VQIVYKPVDLSK","KLDLSNVQSK"),]
+#indata6.single <- indata6[indata6$Modified.Sequence%in%c("VQIVYKPVDLSK","KLDLSNVQSK"),]
+
+
+indata1 <- indata1[,-c(1:3)]
+indata2 <- indata2[,-c(1:3)]
+indata3 <- indata3[,-c(1:3)]
+indata4 <- indata4[,-c(1:3)]
+indata5 <- indata5[,-c(1:3)]
+indata6 <- indata6[,-c(1:3)]
+
+indata1.single <- indata1.single[,-c(1:3)]
+indata2.single <- indata2.single[,-c(1:3)]
+indata3.single <- indata3.single[,-c(1:3)]
+indata4.single <- indata4.single[,-c(1:3)]
+indata5.single <- indata5.single[,-c(1:3)]
+indata6.single <- indata6.single[,-c(1:3)]
+
+indata1.single <- aggregate(indata1.single[,-c(1)],list(Isoform=indata1.single[,1]),sum)
+indata2.single <- aggregate(indata2.single[,-c(1)],list(Isoform=indata2.single[,1]),sum)
+indata3.single <- aggregate(indata3.single[,-c(1)],list(Isoform=indata3.single[,1]),sum)
+indata4.single <- aggregate(indata4.single[,-c(1)],list(Isoform=indata4.single[,1]),sum)
+indata5.single <- aggregate(indata5.single[,-c(1)],list(Isoform=indata5.single[,1]),sum)
+indata6.single <- aggregate(indata6.single[,-c(1)],list(Isoform=indata6.single[,1]),sum)
+
+indata1.agg <- aggregate(indata1[,-c(1)],list(Isoform=indata1[,1]),sum)
+indata2.agg <- aggregate(indata2[,-c(1)],list(Isoform=indata2[,1]),sum)
+indata3.agg <- aggregate(indata3[,-c(1)],list(Isoform=indata3[,1]),sum)
+indata4.agg <- aggregate(indata4[,-c(1)],list(Isoform=indata4[,1]),sum)
+indata5.agg <- aggregate(indata5[,-c(1)],list(Isoform=indata5[,1]),sum)
+indata6.agg <- aggregate(indata6[,-c(1)],list(Isoform=indata6[,1]),sum)
+
+df <- read.csv("D:/Data/Tau_comparisonpaper/FigureScripts/FINALSet/MSFragger/Mukesh/filenames.csv",header=TRUE)
+
+df1.tmp <- df[which(df$file%in%colnames(indata1.agg)),]
+colnames(df1.tmp) <- c("file","NPDX","Sample")
+df1.tmp$Search <- rep("AD",dim(df1.tmp)[1])
+#df1.tmp[df1.tmp$Group=="CTRL",]$NewID <- paste("ADvs",df1.tmp[df1.tmp$Group=="CTRL",]$NewID,sep="")
+df2.tmp <- df[which(df$file%in%colnames(indata2.agg)),]
+colnames(df2.tmp) <- c("file","NPDX","Sample")
+df2.tmp$Search <- rep("CBD",dim(df2.tmp)[1])
+#df2.tmp[df2.tmp$Group=="CTRL",]$NewID <- paste("CBDvs",df2.tmp[df2.tmp$Group=="CTRL",]$NewID,sep="")
+df3.tmp <- df[which(df$file%in%colnames(indata3.agg)),]
+colnames(df3.tmp) <- c("file","NPDX","Sample")
+df3.tmp$Search <- rep("CTE",dim(df3.tmp)[1])
+#df3.tmp[df3.tmp$Group=="CTRL",]$NewID <- paste("CTEvs",df3.tmp[df3.tmp$Group=="CTRL",]$NewID,sep="")
+df4.tmp <- df[which(df$file%in%colnames(indata4.agg)),]
+colnames(df4.tmp) <- c("file","NPDX","Sample")
+df4.tmp$Search <- rep("DLB",dim(df4.tmp)[1])
+#df4.tmp[df4.tmp$Group=="CTRL",]$NewID <- paste("DLBvs",df4.tmp[df4.tmp$Group=="CTRL",]$NewID,sep="")
+df5.tmp <- df[which(df$file%in%colnames(indata5.agg)),]
+colnames(df5.tmp) <- c("file","NPDX","Sample")
+df5.tmp$Search <- rep("PiD",dim(df5.tmp)[1])
+#df5.tmp[df5.tmp$Group=="CTRL",]$NewID <- paste("PiDvs",df5.tmp[df5.tmp$Group=="CTRL",]$NewID,sep="")
+df6.tmp <- df[which(df$file%in%colnames(indata6.agg)),]
+colnames(df6.tmp) <- c("file","NPDX","Sample")
+df6.tmp$Search <- rep("PSP",dim(df6.tmp)[1])
+#df6.tmp[df6.tmp$Group=="CTRL",]$NewID <- paste("PSPvs",df6.tmp[df6.tmp$Group=="CTRL",]$NewID,sep="")
+
+df1.single.tmp <- df[which(df$file%in%colnames(indata1.single)),]
+colnames(df1.single.tmp) <- c("file","NPDX","Sample")
+df1.single.tmp$Search <- rep("AD",dim(df1.single.tmp)[1])
+#df1.single.tmp[df1.single.tmp$Group=="CTRL",]$NewID <- paste("ADvs",df1.single.tmp[df1.single.tmp$Group=="CTRL",]$NewID,sep="")
+df2.single.tmp <- df[which(df$file%in%colnames(indata2.single)),]
+colnames(df2.single.tmp) <- c("file","NPDX","Sample")
+df2.single.tmp$Search <- rep("CBD",dim(df2.single.tmp)[1])
+#df2.single.tmp[df2.single.tmp$Group=="CTRL",]$NewID <- paste("CBDvs",df2.single.tmp[df2.single.tmp$Group=="CTRL",]$NewID,sep="")
+df3.single.tmp <- df[which(df$file%in%colnames(indata3.single)),]
+colnames(df3.single.tmp) <- c("file","NPDX","Sample")
+df3.single.tmp$Search <- rep("CTE",dim(df3.single.tmp)[1])
+#df3.single.tmp[df3.single.tmp$Group=="CTRL",]$NewID <- paste("CTEvs",df3.single.tmp[df3.single.tmp$Group=="CTRL",]$NewID,sep="")
+df4.single.tmp <- df[which(df$file%in%colnames(indata4.single)),]
+colnames(df4.single.tmp) <- c("file","NPDX","Sample")
+df4.single.tmp$Search <- rep("DLB",dim(df4.single.tmp)[1])
+#df4.single.tmp[df4.single.tmp$Group=="CTRL",]$NewID <- paste("DLBvs",df4.single.tmp[df4.single.tmp$Group=="CTRL",]$NewID,sep="")
+df5.single.tmp <- df[which(df$file%in%colnames(indata5.single)),]
+colnames(df5.single.tmp) <- c("file","NPDX","Sample")
+df5.single.tmp$Search <- rep("PiD",dim(df5.single.tmp)[1])
+#df5.single.tmp[df5.single.tmp$Group=="CTRL",]$NewID <- paste("PiDvs",df5.single.tmp[df5.single.tmp$Group=="CTRL",]$NewID,sep="")
+df6.single.tmp <- df[which(df$file%in%colnames(indata6.single)),]
+colnames(df6.single.tmp) <- c("file","NPDX","Sample")
+df6.single.tmp$Search <- rep("PSP",dim(df6.single.tmp)[1])
+#df6.single.tmp[df6.single.tmp$Group=="CTRL",]$NewID <- paste("PSPvs",df6.single.tmp[df6.single.tmp$Group=="CTRL",]$NewID,sep="")
+
+indata1.agg <- indata1.agg[,c("Isoform",df1.tmp$file)]
+indata2.agg <- indata2.agg[,c("Isoform",df2.tmp$file)]
+indata3.agg <- indata3.agg[,c("Isoform",df3.tmp$file)]
+indata4.agg <- indata4.agg[,c("Isoform",df4.tmp$file)]
+indata5.agg <- indata5.agg[,c("Isoform",df5.tmp$file)]
+indata6.agg <- indata6.agg[,c("Isoform",df6.tmp$file)]
+
+indata1.single <- indata1.single[,c("Isoform",df1.tmp$file)]
+indata2.single <- indata2.single[,c("Isoform",df2.tmp$file)]
+indata3.single <- indata3.single[,c("Isoform",df3.tmp$file)]
+indata4.single <- indata4.single[,c("Isoform",df4.tmp$file)]
+indata5.single <- indata5.single[,c("Isoform",df5.tmp$file)]
+indata6.single <- indata6.single[,c("Isoform",df6.tmp$file)]
+
+colnames(indata1.agg) <- c("Isoform",df1.tmp$Sample)
+colnames(indata2.agg) <- c("Isoform",df2.tmp$Sample)
+colnames(indata3.agg) <- c("Isoform",df3.tmp$Sample)
+colnames(indata4.agg) <- c("Isoform",df4.tmp$Sample)
+colnames(indata5.agg) <- c("Isoform",df5.tmp$Sample)
+colnames(indata6.agg) <- c("Isoform",df6.tmp$Sample)
+
+colnames(indata1.single) <- c("Isoform",df1.tmp$Sample)
+colnames(indata2.single) <- c("Isoform",df2.tmp$Sample)
+colnames(indata3.single) <- c("Isoform",df3.tmp$Sample)
+colnames(indata4.single) <- c("Isoform",df4.tmp$Sample)
+colnames(indata5.single) <- c("Isoform",df5.tmp$Sample)
+colnames(indata6.single) <- c("Isoform",df6.tmp$Sample)
+
+df1 <- as.data.frame(t(indata1.agg[,-c(1)]))
+colnames(df1) <- indata1.agg[,1]
+df1$file <- gsub("\\.[1-9]","",rownames(df1))
+df1 <- aggregate(df1[,c(1,2)],list(Sample=df1$file),mean)
+df1 <- merge(df1.tmp[,-c(1)],df1)
+
+df2 <- as.data.frame(t(indata2.agg[,-c(1)]))
+colnames(df2) <- indata2.agg[,1]
+df2$file <- gsub("\\.[1-9]","",rownames(df2))
+df2 <- aggregate(df2[,c(1,2)],list(Sample=df2$file),mean)
+df2 <- merge(df2.tmp[,-c(1)],df2)
+
+df3 <- as.data.frame(t(indata3.agg[,-c(1)]))
+colnames(df3) <- indata3.agg[,1]
+df3$file <- gsub("\\.[1-9]","",rownames(df3))
+df3 <- aggregate(df3[,c(1,2)],list(Sample=df3$file),mean)
+df3 <- merge(df3.tmp[,-c(1)],df3)
+
+df4 <- as.data.frame(t(indata4.agg[,-c(1)]))
+colnames(df4) <- indata4.agg[,1]
+df4$file <- gsub("\\.[1-9]","",rownames(df4))
+df4 <- aggregate(df4[,c(1,2)],list(Sample=df4$file),mean)
+df4 <- merge(df4.tmp[,-c(1)],df4)
+
+df5 <- as.data.frame(t(indata5.agg[,-c(1)]))
+colnames(df5) <- indata5.agg[,1]
+df5$file <- gsub("\\.[1-9]","",rownames(df5))
+df5 <- aggregate(df5[,c(1,2)],list(Sample=df5$file),mean)
+df5 <- merge(df5.tmp[,-c(1)],df5)
+
+df6 <- as.data.frame(t(indata6.agg[,-c(1)]))
+colnames(df6) <- indata6.agg[,1]
+df6$file <- gsub("\\.[1-9]","",rownames(df6))
+df6 <- aggregate(df6[,c(1,2)],list(Sample=df6$file),mean)
+df6 <- merge(df6.tmp[,-c(1)],df6)
+
+df1.single <- as.data.frame(t(indata1.single[,-c(1)]))
+colnames(df1.single) <- indata1.single[,1]
+df1.single$file <- gsub("\\.[1-9]","",rownames(df1.single))
+df1.single <- aggregate(df1.single[,c(1,2)],list(Sample=df1.single$file),mean)
+df1.single <- merge(df1.single.tmp[,-c(1)],df1.single)
+
+df2.single <- as.data.frame(t(indata2.single[,-c(1)]))
+colnames(df2.single) <- indata2.single[,1]
+df2.single$file <- gsub("\\.[1-9]","",rownames(df2.single))
+df2.single <- aggregate(df2.single[,c(1,2)],list(Sample=df2.single$file),mean)
+df2.single <- merge(df2.single.tmp[,-c(1)],df2.single)
+
+df3.single <- as.data.frame(t(indata3.single[,-c(1)]))
+colnames(df3.single) <- indata3.single[,1]
+df3.single$file <- gsub("\\.[1-9]","",rownames(df3.single))
+df3.single <- aggregate(df3.single[,c(1,2)],list(Sample=df3.single$file),mean)
+df3.single <- merge(df3.single.tmp[,-c(1)],df3.single)
+
+df4.single <- as.data.frame(t(indata4.single[,-c(1)]))
+colnames(df4.single) <- indata4.single[,1]
+df4.single$file <- gsub("\\.[1-9]","",rownames(df4.single))
+df4.single <- aggregate(df4.single[,c(1,2)],list(Sample=df4.single$file),mean)
+df4.single <- merge(df4.single.tmp[,-c(1)],df4.single)
+
+df5.single <- as.data.frame(t(indata5.single[,-c(1)]))
+colnames(df5.single) <- indata5.single[,1]
+df5.single$file <- gsub("\\.[1-9]","",rownames(df5.single))
+df5.single <- aggregate(df5.single[,c(1,2)],list(Sample=df5.single$file),mean)
+df5.single <- merge(df5.single.tmp[,-c(1)],df5.single)
+
+df6.single <- as.data.frame(t(indata6.single[,-c(1)]))
+colnames(df6.single) <- indata6.single[,1]
+df6.single$file <- gsub("\\.[1-9]","",rownames(df6.single))
+df6.single <- aggregate(df6.single[,c(1,2)],list(Sample=df6.single$file),mean)
+df6.single <- merge(df6.single.tmp[,-c(1)],df6.single)
+
+df.total <- rbind(df1,df2,df3,df4,df5,df6)
+df.total <- df.total[order(df.total$Sample),]
+df.total$Search <- NULL
+df.total <- aggregate(df.total[,-c(1,2)],list(Sample=df.total$Sample,NPDX=df.total$NPDX),mean)
+
+df.total$`3R4R` <- df.total$`3R` / df.total$`4R`
+df.total$`4R3R` <- df.total$`4R` / df.total$`3R`
+
+df.total[is.infinite(df.total$`3R4R`),]
+df.total$log3R4R <- log10(df.total$`3R4R`)
+df.total$log4R3R <- log10(df.total$`4R3R`)
+
+df.single.total <- rbind(df1.single,df2.single,df3.single,df4.single,df5.single,df6.single)
+df.single.total <- df.single.total[order(df.single.total$Sample),]
+df.single.total$Search <- NULL
+df.single.total <- aggregate(df.single.total[,-c(1,2)],list(Sample=df.single.total$Sample,NPDX=df.single.total$NPDX),mean)
+
+df.single.total$`3R4R` <- df.single.total$`3R` / df.single.total$`4R`
+df.single.total$`4R3R` <- df.single.total$`4R` / df.single.total$`3R`
+
+df.single.total[is.infinite(df.single.total$`3R4R`),]
+df.single.total$log3R4R <- log10(df.single.total$`3R4R`)
+df.single.total$log4R3R <- log10(df.single.total$`4R3R`)
+#df.single.total[is.infinite(df.single.total$`3R4R`),]$log3R4R <- NA
+#df.single.total[is.infinite(df.single.total$`3R4R`),]$log4R3R <- NA
+#df.single.total[is.infinite(df.single.total$`3R4R`),]$`4R3R` <- NA
+#df.single.total[is.infinite(df.single.total$`3R4R`),]$`3R4R` <- NA
+
+removesamples <- c("AD_x1","AD_x2","AD_x3","PD_01","CTE_x1","CTRL_x1","CTRL_x2","CTRL_x3")
+
+df.total <- df.total[!(df.total$Sample%in%removesamples),]
+df.single.total <- df.single.total[!(df.single.total$Sample%in%removesamples),]
+
+
+
+write.csv(df.total,"D:/Data/Tau_comparisonpaper/FigureScripts/FINALSet/MSFragger/timsTOF_4Rstartincl_X2025.csv",row.names=FALSE)
+write.csv(df.single.total,"D:/Data/Tau_comparisonpaper/FigureScripts/FINALSet/MSFragger/timsTOF_4Rstartincl_X2025_FLEXIpeptides.csv",row.names=FALSE)
+
+aggregate(df.total[,c(5,6,7,8)],list(NPDX=df.total[,2]),function(x) {mean(x[!is.infinite(x)],na.rm=TRUE)})
+
+ggplot(df.total,aes(x=NPDX,y=log4R3R)) + geom_boxplot()
+```

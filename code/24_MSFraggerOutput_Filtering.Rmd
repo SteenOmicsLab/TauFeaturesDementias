@@ -1,0 +1,67 @@
+---
+title: "Filtering of MSFragger output for relevant peptides"
+author: "Christoph N. Schlaffner"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r, include=FALSE}
+options(stringsAsFactors = FALSE)
+library(reshape2)
+
+infile <- "C:/Work/Tau_comparisonpaper/FigureScripts/FINALSet/MSFragger/MSFragger_Sol2_wInt_summary_Int_agg.csv"
+
+indata <- read.csv(infile,header=TRUE)
+
+#indata <- indata[indata$Modificaitons=="",]
+
+#"AEEAGIGDTPSLEDEAAGHVTQAR"
+
+#indata.Niso <- indata[indata$ModifiedSequence%in%c("STPTAEAEEAGIGDTPSLEDEAAGHVTQAR","QAAAQPHTEIPEGTTAEEAGIGDTPSLEDEAAGHVTQAR","STPTAEDVTAPLVDEGAPGK","DQGGYTMHQDQEGDTDAGLKAEEAGIGDTPSLEDEAAGHVTQAR","AEEAGIGDTPSLEDEAAGHVTQAR","AEEAGIGDTPSLEDEAAGHVTQARMVSK"),]
+#indata.Niso[indata.Niso$ModifiedSequence%in%c("DQGGYTMHQDQEGDTDAGLKAEEAGIGDTPSLEDEAAGHVTQAR","AEEAGIGDTPSLEDEAAGHVTQAR","AEEAGIGDTPSLEDEAAGHVTQARMVSK"),]$Accessions <- "0N"
+#indata.Niso[indata.Niso$ModifiedSequence=="STPTAEAEEAGIGDTPSLEDEAAGHVTQAR",]$Accessions <- "1N"
+#indata.Niso[indata.Niso$ModifiedSequence%in%c("STPTAEDVTAPLVDEGAPGK","QAAAQPHTEIPEGTTAEEAGIGDTPSLEDEAAGHVTQAR"),]$Accessions <- "2N"
+
+
+indata.Niso <- indata[indata$ModifiedSequence%in%c("STPTAEAEEAGIGDTPSLEDEAAGHVTQAR","STPTAEDVTAPLVDEGAPGK","AEEAGIGDTPSLEDEAAGHVTQAR"),]
+indata.Niso[indata.Niso$ModifiedSequence%in%c("AEEAGIGDTPSLEDEAAGHVTQAR"),]$Accessions <- "0N"
+indata.Niso[indata.Niso$ModifiedSequence=="STPTAEAEEAGIGDTPSLEDEAAGHVTQAR",]$Accessions <- "1N"
+indata.Niso[indata.Niso$ModifiedSequence%in%c("STPTAEDVTAPLVDEGAPGK"),]$Accessions <- "2N"
+
+
+
+indata.Niso <- dcast(indata.Niso, Sample ~ Accessions, value.var="Intensity",fun.aggregate=sum)
+indata.Niso <- melt(indata.Niso)
+colnames(indata.Niso) <- c("Sample","Accessions","Intensity")
+indata.Niso$Conf <- NA
+indata.Niso$Modifications <- NA
+indata.Niso$CorrectedModifications <- NA
+indata.Niso$ProteinModifications <- NA
+indata.Niso$Cleavages <- NA
+indata.Niso$CleavageSites <- NA
+indata.Niso$dMass <- NA
+indata.Niso$Obs.MW <- NA
+indata.Niso$Obs.m.z <- NA
+indata.Niso$Theor.MW <- NA
+indata.Niso$Theor.m.z <- NA
+indata.Niso$Theor.z <- NA
+indata.Niso$Sequence <- ""
+indata.Niso[indata.Niso$Accessions=="0N",]$Sequence <- "AEEAGIGDTPSLEDEAAGHVTQR"
+indata.Niso[indata.Niso$Accessions=="1N",]$Sequence <- "STPTAEAEEAGIGDTPSLEDEAAGHVTQAR"
+indata.Niso[indata.Niso$Accessions=="2N",]$Sequence <- "STPTAEDVTPPLVDEGAPGK"
+indata.Niso$ModifiedSequence <- indata.Niso$Sequence
+indata.Niso <- indata.Niso[,c("Sample","Accessions","Conf","Sequence","Modifications","CorrectedModifications","ProteinModifications","ModifiedSequence","Cleavages","CleavageSites","dMass","Obs.MW","Obs.m.z","Theor.MW","Theor.m.z","Theor.z","Intensity")]
+
+
+samples <- unique(indata$Sample)
+#"TPSLPTPPTR"
+
+for(sample in samples) {
+  a <- sum(indata[indata$Sample==sample,]$Intensity)
+  indata.Niso[indata.Niso$Sample==sample,]$Intensity <- indata.Niso[indata.Niso$Sample==sample,]$Intensity / a
+}
+
+outfile <- "C:/Work/Tau_comparisonpaper/FigureScripts/FINALSet/MSFragger/MSFragger_Sol2_wInt_summary_Int_agg_NIso_option2.csv"
+
+write.csv(indata.Niso,file=outfile,quote=FALSE,na="",row.names=FALSE)
+```

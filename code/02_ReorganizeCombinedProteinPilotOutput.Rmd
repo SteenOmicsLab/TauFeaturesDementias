@@ -1,0 +1,199 @@
+---
+title: "Reorganizing long format combined ProteinPilot output into PTM and Cleavage matrices"
+author: "Christoph N. Schlaffner"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r setup, include=FALSE}
+options(stringsAsFactors = FALSE)
+library(ggplot2)
+library(reshape2)
+
+# function to apply consistent site naming for peptide C-term and N-term cleavages
+correctingcleavagesites <- function(x,translationtable) {
+  x1 <- x[10]
+  y <- ""
+    if(x1!="") {
+      xx <- unlist(strsplit(x1,"; "))
+      if(length(xx)>0) {
+        for(j in 1:length(xx)) {
+          if(length(translationtable[translationtable$SiteTerm==xx[j],]$TermAgnostic)>0) {
+            xx[j] <- translationtable[translationtable$SiteTerm==xx[j],]$TermAgnostic
+          }
+        }
+        y <- paste(xx,collapse="; ")
+      } else {
+        xx <- translationtable[translationtable$SiteTerm==xx,]$TermAgnostic
+        y <- paste(xx,collapse="; ")
+      }
+    } 
+  y
+}
+```
+
+
+```{r setup, include=FALSE}
+# Input: the result files from ProteinPilot extracted and combined using script "Combine_ProteinPilot.Rmd" 
+infile <- "./PP_phospho_INSOL.csv"
+
+# Output: file locations for the matrix files for PTMs (*_reformat.csv) and Cleavages (*_reformat_C.csv)
+outfile <- "./PP_phopsho_INSOL_reformat.csv"
+outfileC <- "./PP_phopsho_INSOL_reformat_C.csv"
+
+indata <- read.csv(infile)
+samples <- unique(indata$Sample)
+```
+
+```{r setup, include=FALSE}
+indata.filter <- indata
+indata.filter <- indata.filter[indata.filter$Accessions!="",]
+indata.filter$Individual <- indata.filter$Sample
+
+# turn from long format to wide format
+tmp <- dcast(indata.filter, CorrectedModifications+Accessions ~ Individual, sum, value.var="Conf")
+
+# split per peptide modifications into individual modification sites
+curnames.split <- strsplit(tmp$CorrectedModifications,"; ")
+firstcurnames <- c()
+for (i in 1:length(curnames.split)) {
+  firstcurnames <- c(firstcurnames, curnames.split[[i]][1])
+}
+firstcurnames <- matrix(c(NA,NA,NA,unlist(strsplit(firstcurnames,"@"))),ncol=2,byrow=TRUE)[,2]
+index <- as.numeric(firstcurnames)
+tmp <- tmp[order(index),]
+tmp.mods <- tmp$CorrectedModifications
+tmp.acc <- tmp$Accessions
+tmp[tmp>0] <- 1
+tmp$CorrectedModifications <- NULL
+tmp$Accessions <- NULL
+tmp <- t(tmp)
+colnames(tmp) <- tmp.mods
+tmp <- as.data.frame(tmp)
+tmp.colnames <- colnames(tmp)
+tmp$ID <- rownames(tmp)
+
+notincl <- samples[!(samples%in%tmp$ID)]
+if(length(notincl)>0) {
+  tmp.tmp <- tmp[tmp$ID%in%notincl,]
+  for(i in 1:length(notincl)) {
+    maxj <- dim(tmp.tmp)[2]-1
+    tmp.tmp <- rbind(tmp.tmp,c(rep(0,maxj),notincl[i]))
+  }
+  colnames(tmp.tmp) <- colnames(tmp)
+  tmp <- rbind(tmp,tmp.tmp)
+  tmp$ID <- factor(tmp$ID,levels=samples)
+  tmp <- tmp[order(tmp$ID),]
+  tmp$ID <- as.character(tmp$ID)
+  rownames(tmp) <- tmp$ID
+}
+
+# Rename elements to sorter name
+tmp$Neuropathology <- rep("CTR",dim(tmp)[1])
+tmp$Neuropathology[startsWith(tmp$ID,"AD")] <- "AD"
+tmp$Neuropathology[startsWith(tmp$ID,"fAD")] <- "fAD"
+tmp$Neuropathology[startsWith(tmp$ID,"CBD")] <- "CBD"
+tmp$Neuropathology[startsWith(tmp$ID,"CTE")] <- "CTE"
+tmp$Neuropathology[startsWith(tmp$ID,"PSP")] <- "PSP"
+tmp$Neuropathology[startsWith(tmp$ID,"PiD")] <- "PiD"
+tmp$Neuropathology[startsWith(tmp$ID,"DLB")] <- "DLB"
+tmp$Neuropathology[startsWith(tmp$ID,"NPCAD")] <- "NPCAD"
+tmp$Neuropathology[startsWith(tmp$ID,"FTLDTau")] <- "FTLDTau"
+tmp$Neuropathology[startsWith(tmp$ID,"CAA")] <- "CAA"
+tmp <- tmp[,c("ID","Neuropathology",tmp.colnames)]
+tmp.meta <- as.data.frame(rbind(tmp.acc,tmp.mods))
+tmp.colnames2 <- colnames(tmp.meta)
+tmp.meta$ID <- c("","") 
+tmp.meta$Neuropathology <- c("","") 
+tmp.meta <- tmp.meta[,c("ID","Neuropathology",tmp.colnames2)]
+colnames(tmp.meta) <- colnames(tmp)
+rownames(tmp.meta) <- c("Isoform","Modifications")
+tmp <- rbind(tmp.meta,tmp)
+
+# Add names for isoform peptides
+colnames(tmp) <- c(colnames(tmp)[1:(length(tmp)-4)],"Unmod1@0","Unmod2@0","Unmod3@0")
+
+# print the PTM output file
+write.table(tmp,outfile,quote=FALSE,na="",row.names=FALSE,col.names=FALSE,sep=",")
+```
+
+```{r setup, include=FALSE}
+
+# lookup table to rename C-term and N-term cleavages to a consistent site, i.e. cleavage on C-term of peptide and N-term of 
+# the complement following peptide is referred to by the amino acid following the cleavage site
+cleavcorinfile <- "./uniprot_tau_isoforms2N4R-0N-1N-3R_cleavageremap.csv"
+cleavcordata <- read.csv(cleavcorinfile,header=TRUE)
+
+indata.filterC <- indata
+indata.filterC <- indata.filterC[indata.filterC$Accessions!="",]
+indata.filterC$Individual <- indata.filterC$Sample
+
+# apply translation to consistent site naming
+indata.filterC$CleavageSites <- apply(indata.filterC,1,correctingcleavagesites,translationtable=cleavcordata)
+
+# turn from long format to wide format
+tmp <- dcast(indata.filterC, CleavageSites+Accessions ~ Individual, sum, value.var="Conf")
+
+# split per peptide cleavages into individual cleavage sites
+curnames.split <- strsplit(tmp$CleavageSites,"; ")
+firstcurnames <- c()
+for (i in 1:length(curnames.split)) {
+  firstcurnames <- c(firstcurnames, curnames.split[[i]][1])
+}
+firstcurnames <- matrix(c(NA,NA,NA,unlist(strsplit(firstcurnames,"@"))),ncol=2,byrow=TRUE)[,2]
+index <- as.numeric(firstcurnames)
+tmp <- tmp[order(index),]
+tmp.cleav <- tmp$CleavageSites
+tmp.acc <- tmp$Accessions
+tmp[tmp>0] <- 1
+tmp$CleavageSites <- NULL
+tmp$Accessions <- NULL
+tmp <- t(tmp)
+colnames(tmp) <- tmp.cleav
+tmp <- as.data.frame(tmp)
+tmp.colnames <- colnames(tmp)
+tmp$ID <- rownames(tmp)
+
+notincl <- samples[!(samples%in%tmp$ID)]
+if(length(notincl)>0) {
+  tmp.tmp <- tmp[tmp$ID%in%notincl,]
+  for(i in 1:length(notincl)) {
+    maxj <- dim(tmp.tmp)[2]-1
+    tmp.tmp <- rbind(tmp.tmp,c(rep(0,maxj),notincl[i]))
+  }
+  colnames(tmp.tmp) <- colnames(tmp)
+  tmp <- rbind(tmp,tmp.tmp)
+  tmp$ID <- factor(tmp$ID,levels=samples)
+  tmp <- tmp[order(tmp$ID),]
+  tmp$ID <- as.character(tmp$ID)
+  rownames(tmp) <- tmp$ID
+}
+
+# Rename elements to sorter name
+tmp$Neuropathology <- rep("CTR",dim(tmp)[1])
+tmp$Neuropathology[startsWith(tmp$ID,"AD")] <- "AD"
+tmp$Neuropathology[startsWith(tmp$ID,"fAD")] <- "fAD"
+tmp$Neuropathology[startsWith(tmp$ID,"CBD")] <- "CBD"
+tmp$Neuropathology[startsWith(tmp$ID,"CTE")] <- "CTE"
+tmp$Neuropathology[startsWith(tmp$ID,"PSP")] <- "PSP"
+tmp$Neuropathology[startsWith(tmp$ID,"PiD")] <- "PiD"
+tmp$Neuropathology[startsWith(tmp$ID,"DLB")] <- "DLB"
+tmp$Neuropathology[startsWith(tmp$ID,"NPCAD")] <- "NPCAD"
+tmp$Neuropathology[startsWith(tmp$ID,"FTLDTau")] <- "FTLDTau"
+tmp$Neuropathology[startsWith(tmp$ID,"CAA")] <- "CAA"
+tmp <- tmp[,c("ID","Neuropathology",tmp.colnames)]
+tmp.meta <- as.data.frame(rbind(tmp.acc,tmp.cleav))
+tmp.colnames2 <- colnames(tmp.meta)
+tmp.meta$ID <- c("","") 
+tmp.meta$Neuropathology <- c("","") 
+tmp.meta <- tmp.meta[,c("ID","Neuropathology",tmp.colnames2)]
+colnames(tmp.meta) <- colnames(tmp)
+rownames(tmp.meta) <- c("Isoform","Cleavage")
+tmp <- rbind(tmp.meta,tmp)
+
+# Add names for isoform peptides
+colnames(tmp) <- c(colnames(tmp)[1:(length(tmp)-4)],"Unmod1@0","Unmod2@0","Unmod3@0")
+
+# print the PTM output file
+write.table(tmp,outfileC,quote=FALSE,na="",row.names=FALSE,col.names=FALSE,sep=",")
+```

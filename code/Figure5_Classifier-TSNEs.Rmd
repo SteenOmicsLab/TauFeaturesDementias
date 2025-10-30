@@ -1,0 +1,178 @@
+---
+title: "Figure 5 TSNE visualization of RF classifiers with classifier AUC data"
+author: "Christoph N. Schlaffner"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r, include=FALSE}
+options(stringsAsFactors=FALSE)
+library(ggplot2)
+library(R.utils)
+#library(OmicCircos)
+library(reshape2)
+#library(fmsb)
+library(circlize)
+library(grid)
+library(gridExtra)
+#library(lattice)
+library(ggpubr)
+library(stringr)
+#library(ggtext)
+#library(rlang)
+library(ggpmisc)
+
+path <- "D:/Data/Tau_comparisonpaper/FigureScripts/FINALSet/ForShaojun/"
+ROCfile <- "ComparisonManuscript_CTR-DLBcomb_20240607_RF_ROC.csv"
+FLEXIfile <- "FLEXITau_ComparisonManuscript_Main_15Features_CTR-DLBcomb_20250131_5Features.csv"
+PTMfile <- "PTM_ComparisonManuscript_Main_CTR-DLBcomb_20250131_5Features.csv"
+Cleavfile <- "Cleavage_ComparisonManuscript_Main_CTR-DLBcomb_20250131_5Features.csv"
+outfilename <- paste(path,"TSNE_top5_totalisoincl_20250131.pdf",sep="")
+
+ROCdata <- read.csv(paste(path,ROCfile,sep=""),header=TRUE)
+ROCdata$Neuropathology <- factor(ROCdata$Neuropathology,levels=c(c("CTR","PSP","PiD","CBD","CTE","AD")))
+ROCdata <- ROCdata[order(ROCdata$Neuropathology),]
+PTMdata <- read.csv(paste(path,PTMfile,sep=""),header=TRUE)
+Cleavdata <- read.csv(paste(path,Cleavfile,sep=""),header=TRUE)
+FLEXIdata <- read.csv(paste(path,FLEXIfile,sep=""),header=TRUE)
+
+titlesize <- 12
+axistitlesize <- 10
+axistextsize <- 10
+npdxcols <- c(AD="#E41A1C",CBD="#FFD92F",CTE="#1740B6",CTR="#4DAF4A",PiD="#984EA3",PSP="#FF7F00")
+
+newname <- c("Dx","AUC")
+tablesize <- 4.5
+
+PTMtable <- ROCdata[,c("Neuropathology","PTMs")]
+PTMtable <- rbind(PTMtable,data.frame(Neuropathology=(""),PTMs=c("")))
+colnames(PTMtable) <- newname
+PTMtable2 <- PTMtable[PTMtable[,1]%in%c("CBD","CTE","AD"),]
+PTMtable <- PTMtable[!(PTMtable[,1]%in%c("CBD","CTE","AD","")),]
+rownames(PTMtable2) <- rownames(PTMtable)
+PTMtable <- cbind(PTMtable,PTMtable2)
+colnames(PTMtable) <- c(newname,paste(newname," ",sep=""))
+#PTMtable <- tidyr::tibble(x=-20,y=11,tb=list(PTMtable))
+PTMtable <- tidyr::tibble(x=-11,y=15,tb=list(PTMtable))
+ptm <- ggplot(PTMdata,aes(x=x,y=y,color=disease,fill=disease)) +
+  stat_ellipse(geom="polygon",alpha=0.05,level=0.65) +
+  geom_point() +
+  geom_table(data=PTMtable,aes(x,y,label=tb),table.theme=ttheme_gtminimal,size=tablesize) +
+  scale_color_manual(values=npdxcols) +
+  scale_fill_manual(values=npdxcols) +
+  ggtitle("\nTSNE Disease Distribution\nPTMs") +
+  theme_minimal() +
+  xlab("Dimension 1") +
+  ylab("Dimension 2") +
+  theme(plot.title=element_text(hjust=0.5,size=titlesize,face="bold"),axis.line=element_line(linewidth=1),title=element_text(size=titlesize,face="bold"),axis.ticks=element_line(linewidth=1),axis.title.x=element_text(size=axistitlesize,face="bold"),axis.text=element_text(size=axistextsize,face="bold",color="black"),axis.title.y=element_text(size=axistitlesize,face="bold"),legend.position="none")
+
+ptm.g <- ggplot_gtable(ggplot_build(ptm))
+stripl <- which(grepl('panel', ptm.g$layout$name))
+fills <- npdxcols[c("CTR","PSP","PiD","CBD","CTE","AD")]
+textcols <- c("#000000","#000000","#E6E6E6","#000000","#E6E6E6","#E6E6E6")
+
+for (i in stripl) {
+  j <- which(grepl('GRID.gTree', ptm.g$grobs[[i]]$childrenOrder))
+  for(k in 1:6) {
+    textk <- 8+k
+    bgk <- 20+k
+    if(k > 3) {
+     textk <-  11+k
+     bgk <- 23+k
+    }
+    ptm.g$grobs[[i]]$children[[j]]$children[[1]]$grobs[[textk]]$gp$col <- textcols[k]
+    ptm.g$grobs[[i]]$children[[j]]$children[[1]]$grobs[[bgk]]$gp$fill <- fills[k]
+  }
+}
+
+Cleavtable <- ROCdata[,c("Neuropathology","Cleavages")]
+Cleavtable <- rbind(Cleavtable,data.frame(Neuropathology=(""),Cleavages=c("")))
+colnames(Cleavtable) <- newname
+Cleavtable2 <- Cleavtable[Cleavtable[,1]%in%c("CBD","CTE","AD"),]
+Cleavtable <- Cleavtable[!(Cleavtable[,1]%in%c("CBD","CTE","AD","")),]
+rownames(Cleavtable2) <- rownames(Cleavtable)
+Cleavtable <- cbind(Cleavtable,Cleavtable2)
+colnames(Cleavtable) <- c(newname,paste(newname," ",sep=""))
+#Cleavtable <- tidyr::tibble(x=-6,y=28,tb=list(Cleavtable))
+Cleavtable <- tidyr::tibble(x=-5,y=25,tb=list(Cleavtable))
+cleav <- ggplot(Cleavdata,aes(x=x,y=y,color=disease,fill=disease)) +
+  stat_ellipse(geom="polygon",alpha=0.05,level=0.5) +
+  geom_point() +
+  geom_table(data=Cleavtable,aes(x,y,label=tb),table.theme=ttheme_gtminimal,size=tablesize) +
+  scale_color_manual(values=npdxcols) +
+  scale_fill_manual(values=npdxcols) +
+  ggtitle("\nTSNE Disease Distribution\nCleavages") +
+  theme_minimal() +
+  xlab("Dimension 1") +
+  ylab("Dimension 2") +
+  theme(plot.title=element_text(hjust=0.5,size=titlesize,face="bold"),axis.line=element_line(linewidth=1),title=element_text(size=titlesize,face="bold"),axis.ticks=element_line(linewidth=1),axis.title.x=element_text(size=axistitlesize,face="bold"),axis.text=element_text(size=axistextsize,face="bold",color="black"),axis.title.y=element_text(size=axistitlesize,face="bold"),legend.position="none")
+
+cleav.g <- ggplot_gtable(ggplot_build(cleav))
+stripl <- which(grepl('panel', cleav.g$layout$name))
+fills <- npdxcols[c("CTR","PSP","PiD","CBD","CTE","AD")]
+textcols <- c("#000000","#000000","#E6E6E6","#000000","#E6E6E6","#E6E6E6")
+
+for (i in stripl) {
+  j <- which(grepl('GRID.gTree', cleav.g$grobs[[i]]$childrenOrder))
+  for(k in 1:6) {
+    textk <- 8+k
+    bgk <- 20+k
+    if(k > 3) {
+      textk <-  11+k
+      bgk <- 23+k
+    }
+    cleav.g$grobs[[i]]$children[[j]]$children[[1]]$grobs[[textk]]$gp$col <- textcols[k]
+    cleav.g$grobs[[i]]$children[[j]]$children[[1]]$grobs[[bgk]]$gp$fill <- fills[k]
+  }
+}
+
+FLEXItable <- ROCdata[,c("Neuropathology","FLEXITau")]
+FLEXItable <- rbind(FLEXItable,data.frame(Neuropathology=(""),FLEXITau=c("")))
+colnames(FLEXItable) <- newname
+FLEXItable2 <- FLEXItable[FLEXItable[,1]%in%c("CBD","CTE","AD"),]
+FLEXItable <- FLEXItable[!(FLEXItable[,1]%in%c("CBD","CTE","AD","")),]
+rownames(FLEXItable2) <- rownames(FLEXItable)
+FLEXItable <- cbind(FLEXItable,FLEXItable2)
+colnames(FLEXItable) <- c(newname,paste(newname," ",sep=""))
+#FLEXItable <- tidyr::tibble(x=-15,y=15,tb=list(FLEXItable))
+FLEXItable <- tidyr::tibble(x=-20,y=5,tb=list(FLEXItable))
+flexi <- ggplot(FLEXIdata,aes(x=x,y=y,color=disease,fill=disease)) +
+  stat_ellipse(geom="polygon",alpha=0.05,level=0.65) +
+  geom_point() +
+  geom_table(data=FLEXItable,aes(x,y,label=tb),table.theme=ttheme_gtminimal,size=tablesize) +
+  scale_color_manual(values=npdxcols) +
+  scale_fill_manual(values=npdxcols) +
+  ggtitle("\nTSNE Disease Distribution\nFLEXITau") +
+  theme_minimal() +
+  xlab("Dimension 1") +
+  ylab("Dimension 2") +
+  theme(plot.title=element_text(hjust=0.5,size=titlesize,face="bold"),axis.line=element_line(linewidth=1),title=element_text(size=titlesize,face="bold"),axis.ticks=element_line(linewidth=1),axis.title.x=element_text(size=axistitlesize,face="bold"),axis.text=element_text(size=axistextsize,face="bold",color="black"),axis.title.y=element_text(size=axistitlesize,face="bold"),legend.position="none")
+
+flexi.g <- ggplot_gtable(ggplot_build(flexi))
+stripl <- which(grepl('panel', flexi.g$layout$name))
+fills <- npdxcols[c("CTR","PSP","PiD","CBD","CTE","AD")]
+textcols <- c("#000000","#000000","#E6E6E6","#000000","#E6E6E6","#E6E6E6")
+
+for (i in stripl) {
+  j <- which(grepl('GRID.gTree', flexi.g$grobs[[i]]$childrenOrder))
+  for(k in 1:6) {
+    textk <- 8+k
+    bgk <- 20+k
+    if(k > 3) {
+      textk <-  11+k
+      bgk <- 23+k
+    }
+    flexi.g$grobs[[i]]$children[[j]]$children[[1]]$grobs[[textk]]$gp$col <- textcols[k]
+    flexi.g$grobs[[i]]$children[[j]]$children[[1]]$grobs[[bgk]]$gp$fill <- fills[k]
+  }
+}
+
+blank <- grid.rect(gp=gpar(col="white"))
+
+
+layout <- t(cbind(c(1,2,3)))
+p_total <- grid.arrange(grobs=list(ptm.g,cleav.g,flexi.g),layout_matrix=layout)
+ggsave(outfilename,p_total,device="pdf",width=8.26,height=3.18,units="in",scale=1.5)
+
+#ggarrange(ptm.g,cleav.g,flexi.g,ncol=3,labels=c("B","C","D"),font.label=list(size=22)) %>% ggexport(filename=outfilename,width=6500,height=2500,res=600)
+```

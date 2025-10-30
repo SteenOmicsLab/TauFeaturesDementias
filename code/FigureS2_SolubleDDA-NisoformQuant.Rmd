@@ -1,0 +1,197 @@
+---
+title: "Figure S2 Comparison of N-isoforms in Soluble fraction"
+author: "Christoph N. Schlaffner"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r, include=FALSE}
+options(stringsAsFactors = FALSE)
+library(reshape2)
+library(ggplot2)
+library(scales)
+library(ggpubr)
+library(gridExtra)
+library(ggh4x)
+
+summarize <- function (datainput,testinput,testname) {
+  agg.sd <- aggregate(as.numeric(datainput$RisoformRatio),list(datainput$Neuropathology),sd)
+  agg.sum <- aggregate(as.numeric(datainput$RisoformRatio),list(datainput$Neuropathology),summary)
+  agg.sum.tmp <- agg.sum$Group.1
+  agg.sum <- as.data.frame(unclass(agg.sum$x))
+  agg.sum$group2 <- agg.sum.tmp
+  colnames(agg.sum)
+  test.all <- as.data.frame(testinput)
+  agg.sum <- merge(agg.sum,test.all,all=T)
+  agg.sum <- agg.sum[,c(8,1:7,11)]
+  agg.sum[agg.sum$group2=="CTR",]$.y. <- "RisoformRatio"
+  colnames(agg.sum) <- c("Group","Neuropathology","Min","1st Quartile","Median","Mean","3rd Quartile","Max","adjusted p-value")
+  colnames(agg.sd) <- c("Neuropathology","Standard Deviation")
+  agg.sum$Group <- rep(testname,dim(agg.sum)[1])
+  agg.sum <- merge(agg.sum,agg.sd,all=TRUE)
+  agg.sum <- agg.sum[,c("Group","Neuropathology","Min","1st Quartile","Median","Mean","3rd Quartile","Max","Standard Deviation","adjusted p-value")]
+  return(agg.sum)
+}
+
+math_format2 <- function (expr = 10^.x, expr2 = .x, format = force) 
+{
+  .x <- NULL
+  quoted <- substitute(expr)
+  subs <- function(x) {
+    do.call("substitute", list(quoted, list(.x = x)))
+  }
+  quoted2 <- substitute(expr2)
+  subs2 <- function(x) {
+    do.call("substitute", list(quoted2, list(.x = x)))
+  }
+  function(x) {
+    x[x==1] <- 10
+    x[x==0] <- 1
+    x <- format(x)
+    ret <- lapply(x, subs)
+    ret <- as.expression(ret)
+    ret[is.na(x)] <- NA
+    names(ret) <- names(x)
+    ret2 <- lapply(x, subs2)
+    ret2 <- as.expression(ret2)
+    ret2[is.na(x)] <- NA
+    names(ret2) <- names(x)
+    ret[x%in%c(1,10)] <- ret2[x%in%c(1,10)]
+    ret
+  }
+  
+}
+
+linesize <- 0.8
+
+anno_colors <- list(Isoform=c(N0="#BEBADA",N1="#FDB462",N2="#F781BF",R3="#66C2A5",R4="#80B1D3","#FFFFFF"),
+                    NPDX1=c(fAD="#9C0B0C",NPCAD="#FF17E3",AD="#E41A1C",CAA="#914B00",CBD="#FFD92F",CTE="#1740B6",CTR="#4DAF4A",DLB="#8DD3C7",FTLD="#17DFFF",PiD="#984EA3",PSP="#FF7F00",FTLD="#18BCD6",HS="#24B39B",HSTDP="#2BE0C2",HEMR="#EB5456",HEMT="#AD4041",CVD="#FB9A99",INF="#FC8D62",MEN="#FCCDE5",AS="#E5C494",PD="#E7298A",MAL="#BC80BD",ALS="#E31A1C",DMP="#BEBADA",NFD="#1F78B4",ELC="#1B9E77",AHYP="#3890B0",CON="#F781BF",SNL="#FDCDAC",FETGI="#80B1D3",AGD="#545454","#FFFFFF"),
+                    NPDX2=c(fAD="#9C0B0C",NPCAD="#FF17E3",AD="#E41A1C",CAA="#914B00",CBD="#FFD92F",CTE="#1740B6",CTR="#4DAF4A",DLB="#8DD3C7",FTLD="#17DFFF",PiD="#984EA3",PSP="#FF7F00",FTLD="#18BCD6",HS="#24B39B",HSTDP="#2BE0C2",HEMR="#EB5456",HEMT="#AD4041",CVD="#FB9A99",INF="#FC8D62",MEN="#FCCDE5",AS="#E5C494",PD="#E7298A",MAL="#BC80BD",ALS="#E31A1C",DMP="#BEBADA",NFD="#1F78B4",ELC="#1B9E77",AHYP="#3890B0",CON="#F781BF",SNL="#FDCDAC",FETGI="#80B1D3",AGD="#545454","#FFFFFF")
+)
+testmethod <- "t.test"
+pvaluecorrection <- "fdr"
+p.label <- "p={p.adj}"
+#p.label <- "p.signif"
+pvalsize.pval <- 6
+astersize <- 6
+pvalsize <- pvalsize.pval
+
+titlesize <- 20
+axistitlesize <- 16
+axistextsize <- 16
+
+logticks_left <- annotation_logticks(sides='l',short=unit(0.15,"cm"),mid=unit(0.15,"cm"),long=unit(0.25,"cm"),linewidth=linesize)
+logticks_left$data <- data.frame(x=NA, Neuropathology=factor("CTR",levels=c("CTR","DLB","PSP","PiD","FTLD","CBD","CTE","fAD","AD")))
+logticks_right <- annotation_logticks(sides='r',short=unit(0.15,"cm"),mid=unit(0.15,"cm"),long=unit(0.25,"cm"),linewidth=linesize)
+logticks_right$data <- data.frame(x=NA, Neuropathology=factor("AD",levels=c("CTR","DLB","PSP","PiD","FTLD","CBD","CTE","fAD","AD")))
+
+math_function3 <- function(x) {
+  x <- x[round(x,0)==x]
+  10^x
+}
+
+
+file_012N <- "C:/Work/Tau_comparisonpaper/FigureScripts/FINALSet/MSFragger/MSFragger_wInt_summary_Int_agg_NIso_option2_reformat.csv"
+data_012N <- read.table(file_012N,sep=",",header=TRUE)
+
+data_012N <- data_012N[complete.cases(data_012N),]
+colnames(data_012N) <- c("ID","Neuropathology","N0","N1","N2")
+
+data_012N <- melt(data_012N)
+data_012N$Neuropathology <- factor(data_012N$Neuropathology,levels=c("CTR","DLB","PSP","PiD","CBD","CTE","fAD","AD"))
+data_012N$Isoform <- rep("2N",dim(data_012N)[1])
+data_012N[data_012N$variable=="N1",]$Isoform <- "1N"
+data_012N[data_012N$variable=="N0",]$Isoform <- "0N"
+data_012N$variable <- NULL
+data_012N$Isoform <- factor(data_012N$Isoform,levels=c("2N","1N","0N"))
+
+Nisoform_insoluble_ttest <- compare_means(value~Isoform,data=data_012N,group.by=c("Neuropathology"),method=testmethod,p.adjust.method=pvaluecorrection)
+
+logheights.N <- c(7,6.7,7,6.4,6.7,7,6.4,6.7,7)#c(1.6,2.2,1.9,1.6,1.3,1.9,1.6,1.6,1.9,1.6,1.9,1.6,1.9)+0.1
+#logheights.N <- c(7.1,7.3,7.1,7.3,6.9,7.1,7.3,6.9,7.1,7.3)#withPTM
+#logheights.N <- c(0.5,0.575,0.5,0.575,0.5,0.575,0.8,0.875,0.95,0.5,0.575,0.65,0.5,0.575,0.65,0.5,0.575)
+logheights.N <- c(0.055,0.0625,0.055,0.0625,0.055,0.055,0.0625,0.07,0.055,0.0625,0.07,0.055,0.0625,0.055,0.0625,0.07)
+ylabel.N <- "normalized isoform peptide intensity"
+heights.N <- logheights.N#logheights.N
+
+
+logticks_left <- annotation_logticks(sides='l',short=unit(0.15,"cm"),mid=unit(0.15,"cm"),long=unit(0.25,"cm"),linewidth=linesize)
+logticks_left$data <- data.frame(x=NA, Neuropathology=factor("CTR",levels=c("CTR","DLB","PSP","PiD","FTLD","CBD","CTE","fAD","AD")))
+logticks_right <- annotation_logticks(sides='r',short=unit(0.15,"cm"),mid=unit(0.15,"cm"),long=unit(0.25,"cm"),linewidth=linesize)
+logticks_right$data <- data.frame(x=NA, Neuropathology=factor("AD",levels=c("CTR","DLB","PSP","PiD","FTLD","CBD","CTE","fAD","AD")))
+
+math_function3 <- function(x) {
+  x <- x[round(x,0)==x]
+  10^x
+}
+
+
+plot_N_insoluble <- ggplot(data_012N,aes(x=Isoform,y=value)) + 
+  stat_boxplot(geom="errorbar",width=linesize) +
+  geom_boxplot(aes(fill=Neuropathology),lwd=linesize) +
+  facet_wrap2(~Neuropathology,ncol=11,strip.position="bottom",axes="all",remove_labels="y") +
+  ggtitle("2N, 1N, 0N - DDA Insoluble\n(exon 2-3 splicing)") +
+  scale_fill_manual(values=anno_colors$NPDX1) +
+  scale_y_continuous(sec.axis = dup_axis(label=NULL,name=""),limits=c(0.0,0.1),name=ylabel.N) +
+  #scale_y_log10(sec.axis=dup_axis(label=NULL,name=""),limits=c(NA,25000000),breaks=trans_breaks("log10",math_function3),labels=trans_format("log10",math_format2(10^.x)),name=ylabel.N) + 
+  #logticks_left + logticks_right +
+  stat_pvalue_manual(Nisoform_insoluble_ttest,label=p.label,y.position=heights.N,hide.ns=TRUE,tip.length=0,bracket.size=linesize,label.size=pvalsize) +
+  theme_minimal() +
+  theme(plot.title=element_text(hjust=0.5,size=titlesize,face="bold"),axis.line=element_line(linewidth=linesize),strip.placement="outside",panel.spacing=unit(0,"mm"),strip.text=element_text(size=axistextsize,face="bold"),title=element_text(size=titlesize,face="bold"),axis.ticks=element_line(linewidth=linesize+0.1),axis.title.x=element_blank(),axis.text=element_text(size=axistextsize,face="bold",color="black"),axis.text.x=element_text(angle=90,hjust=1,vjust=0.5),axis.title.y=element_text(size=axistitlesize,face="bold"),legend.position="none")
+
+
+file_012Nsol <- "C:/Work/Tau_comparisonpaper/FigureScripts/FINALSet/MSFragger/MSFragger_Sol2_wInt_summary_Int_agg_NIso_option2_reformat.csv"
+data_012Nsol <- read.table(file_012Nsol,sep=",",header=TRUE)
+
+data_012Nsol <- data_012Nsol[complete.cases(data_012Nsol),]
+colnames(data_012Nsol) <- c("ID","Neuropathology","N0","N1","N2")
+
+data_012Nsol <- melt(data_012Nsol)
+data_012Nsol$Neuropathology <- factor(data_012Nsol$Neuropathology,levels=c("CTR","DLB","PSP","PiD","CBD","CTE","fAD","AD"))
+data_012Nsol$Isoform <- rep("2N",dim(data_012Nsol)[1])
+data_012Nsol[data_012Nsol$variable=="N1",]$Isoform <- "1N"
+data_012Nsol[data_012Nsol$variable=="N0",]$Isoform <- "0N"
+data_012Nsol$variable <- NULL
+data_012Nsol$Isoform <- factor(data_012Nsol$Isoform,levels=c("2N","1N","0N"))
+
+Nisoform_insoluble_ttest2 <- compare_means(value~Isoform,data=data_012Nsol,group.by=c("Neuropathology"),method=testmethod,p.adjust.method=pvaluecorrection)
+
+logheights.Nsol <- c(7,6.7,7,6.4,6.7,7,6.4,6.7,7)#c(1.6,2.2,1.9,1.6,1.3,1.9,1.6,1.6,1.9,1.6,1.9,1.6,1.9)+0.1
+#logheights.N <- c(7.1,7.3,7.1,7.3,6.9,7.1,7.3,6.9,7.1,7.3)#withPTM
+logheights.Nsol <- c(0.6,0.675,0.6,0.675,0.6,0.675,0.75,0.6,0.675,0.75,0.6,0.675,0.6,0.675,0.6,0.675)
+logheights.Nsol <- c(0.0575,0.065,0.0575,0.065,0.0725,0.08,0.0875,0.0575,0.065,0.0725,0.0575,0.065,0.0725,0.08,0.0875,0.0575,0.065,0.0575,0.065)
+ylabel.N <- "normalized isoform peptide intensity"
+heights.Nsol <- logheights.Nsol#logheights.N
+
+#data_012Nsol <- rbind(data_012Nsol,data.frame(ID=c("AD_26","AD_26","AD_26"),Neuropathology=c("fAD","fAD","fAD"),value=c(-0.01,-0.01,-0.01),Isoform=c("0N","1N","2N")))
+#data_012Nsol$Neuropathology <- factor(data_012Nsol$Neuropathology,levels=c("CTR","DLB","PSP","PiD","CBD","CTE","fAD","AD"))
+#data_012Nsol$Isoform <- factor(data_012Nsol$Isoform,levels=c("2N","1N","0N"))
+
+plot_N_insolublesol <- ggplot(data_012Nsol,aes(x=Isoform,y=value)) + 
+  stat_boxplot(geom="errorbar",width=linesize) +
+  geom_boxplot(aes(fill=Neuropathology),lwd=linesize) +
+  facet_wrap2(~Neuropathology,ncol=11,strip.position="bottom",axes="all",remove_labels="y") +
+  ggtitle("Soluble DDA\n(FLEXITau isoform peptides)\n2N, 1N, 0N (exon 2-3 splicing)") +
+  scale_fill_manual(values=anno_colors$NPDX1) +
+  scale_y_continuous(sec.axis = dup_axis(label=NULL,name=""),limits=c(0.0,0.1),name=ylabel.N) +
+  #scale_y_log10(sec.axis=dup_axis(label=NULL,name=""),limits=c(NA,25000000),breaks=trans_breaks("log10",math_function3),labels=trans_format("log10",math_format2(10^.x)),name=ylabel.N) + 
+  #logticks_left + logticks_right +
+  stat_pvalue_manual(Nisoform_insoluble_ttest2,label=p.label,y.position=heights.Nsol,hide.ns=TRUE,tip.length=0,bracket.size=linesize,label.size=pvalsize) +
+  theme_minimal() +
+  theme(plot.title=element_text(hjust=0.5,size=titlesize,face="bold"),axis.line=element_line(linewidth=linesize),strip.placement="outside",panel.spacing=unit(0,"mm"),strip.text=element_text(size=axistextsize,face="bold"),title=element_text(size=titlesize,face="bold"),axis.ticks=element_line(linewidth=linesize+0.1),axis.title.x=element_blank(),axis.text=element_text(size=axistextsize,face="bold",color="black"),axis.text.x=element_text(angle=90,hjust=1,vjust=0.5),axis.title.y=element_text(size=axistitlesize,face="bold"),legend.position="none")
+
+labelsize <- 22
+layout <- t(cbind(c(1),
+                  c(2)))
+
+p_all <- grid.arrange(grobs=list(plot_N_insoluble,plot_N_insolublesol),layout_matrix=layout)
+
+#p_all <- grid.arrange(grobs=list(plot_R_insoluble,plot_R_timsdata,plot_R_timsdata_single,plot_R_flexiwesselingdata,plot_R_qe2data,plot_R_qe2data_single),layout_matrix=layout)
+
+outfilename <- "C:/Work/Tau_comparisonpaper/FigureScripts/FINALSet/MSFragger/MSFragger_wInt_summary_Int_agg_NIso_reformat_Comparison-NisoSol-Insol_option2_20250612.png"
+
+ggsave(outfilename,p_all,device="png",width=8.32,height=5.12,units="in",scale=2)
+outfilename <- "C:/Work/Tau_comparisonpaper/FigureScripts/FINALSet/MSFragger/MSFragger_wInt_summary_Int_agg_NIso_reformat_Comparison-NisoSol-Insol_option2_20250612.pdf"
+
+ggsave(outfilename,p_all,device="pdf",width=8.32,height=5.12,units="in",scale=2)
+```

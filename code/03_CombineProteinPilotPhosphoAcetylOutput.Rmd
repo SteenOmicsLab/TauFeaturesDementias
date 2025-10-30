@@ -1,0 +1,104 @@
+---
+title: "Combine results from 'ReorganizeCombinedProteinPilotOutput.Rmd'for different PTM emphasis searches"
+author: "Christoph N. Schlaffner"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r setup, include=FALSE}
+options(stringsAsFactors = FALSE)
+library(ggplot2)
+library(reshape2)
+
+# Input: reformatted ProteinPilot output files combining individual ProteinPilot outputs across samples
+#        and different PTM search emphasis runs (from ReorganizeCombinedProteinPilotOutput.Rmd); 
+#        (*_reformat.csv for PTMs, *_reformat_C.csv for Cleavages)
+pinfile_ptm <- "./PP_phopsho_INSOL_reformat.csv"
+pinfile_c <- "./PP_phopsho_INSOL_reformat_C.csv"
+
+ainfile_ptm <- "./PP_acetyl_INSOL_reformat.csv"
+ainfile_c <- "./PP_acetyl_INSOL_reformat_C.csv"
+
+# Output: files merging different PTM search emphasis runs from ProteinPilot
+outfile_ptm <- "./PP_INSOL_reformat_combine.csv"
+outfile_c <- "./PP_INSOL_reformat_combine_C.csv"
+```
+
+```{r setup, include=FALSE}
+pindata_ptm <- read.csv(pinfile_ptm,header = FALSE)
+pindata_c <- read.csv(pinfile_c,header = FALSE)
+
+aindata_ptm <- read.csv(ainfile_ptm,header = FALSE)
+aindata_c <- read.csv(ainfile_c,header = FALSE)
+
+pindata_ptm[2,] <- paste(pindata_ptm[2,],pindata_ptm[1,],sep="_")
+pindata_ptm <- pindata_ptm[-c(1),]
+pindata_ptm[1,c(1,2)] <- c("","")
+pindata_c[2,] <- paste(pindata_c[2,],pindata_c[1,],sep="_")
+pindata_c <- pindata_c[-c(1),]
+pindata_c[1,c(1,2)] <- c("","")
+
+aindata_ptm[2,] <- paste(aindata_ptm[2,],aindata_ptm[1,],sep="_")
+aindata_ptm <- aindata_ptm[-c(1),]
+aindata_ptm[1,c(1,2)] <- c("","")
+aindata_c[2,] <- paste(aindata_c[2,],aindata_c[1,],sep="_")
+aindata_c <- aindata_c[-c(1),]
+aindata_c[1,c(1,2)] <- c("","")
+
+# merge different PTM emphasis search results into one shared matrix
+indata_ptm <- merge(pindata_ptm,aindata_ptm,by=c("V1","V2"),all=TRUE)
+indata_c <- merge(pindata_c,aindata_c,by=c("V1","V2"),all=TRUE)
+
+indata_ptm[1,] <- as.character(indata_ptm[1,])
+indata_c[1,] <- as.character(indata_c[1,])
+
+indata_ptm <- t(indata_ptm)
+colnames(indata_ptm) <- c("site_insol_x",indata_ptm[1,][-1])
+indata_ptm <- indata_ptm[-c(1,2),]
+indata_ptm <- as.data.frame(indata_ptm)
+indata_c <- t(indata_c)
+colnames(indata_c) <- c("site_insol_x",indata_c[1,][-1])
+indata_c <- indata_c[-c(1,2),]
+indata_c <- as.data.frame(indata_c)
+
+for(i in 2:length(colnames(indata_ptm))) {
+  indata_ptm[,i] <- as.numeric(as.character(indata_ptm[,i]))
+}
+
+for(i in 2:length(colnames(indata_c))) {
+  indata_c[,i] <- as.numeric(as.character(indata_c[,i]))
+}
+
+ptm_iso <- matrix(unlist(strsplit(indata_ptm$site_insol_x,"_")),ncol=2,byrow=TRUE)
+indata_ptm$iso_insol_x <- ptm_iso[,2]
+indata_ptm$site_insol_x <- ptm_iso[,1]
+
+c_iso <- matrix(unlist(strsplit(indata_c$site_insol_x,"_")),ncol=2,byrow=TRUE)
+indata_c$iso_insol_x <- c_iso[,2]
+indata_c$site_insol_x <- c_iso[,1]
+
+# aggregate per PTM/Cleavage site data to unique sites
+indata_ptm <- aggregate(. ~ iso_insol_x+site_insol_x,data=indata_ptm,function(x){if(sum(x)>0) {1} else {0}})
+indata_c <- aggregate(. ~ iso_insol_x+site_insol_x,data=indata_c,function(x){if(sum(x)>0) {1} else {0}})
+
+indata_ptm <- as.data.frame(t(indata_ptm))
+indata_c <- as.data.frame(t(indata_c))
+
+indata_ptm$sample <- rownames(indata_ptm)
+indata_ptm$np <- matrix(unlist(strsplit(indata_ptm$sample,"_")),ncol=3,byrow=TRUE)[,1]
+n <- dim(indata_ptm)[2]
+indata_ptm <- indata_ptm[,c(n-1,n,1:(n-2))]
+indata_ptm[1,c(1,2)] <- c("","")
+indata_ptm[2,c(1,2)] <- c("","")
+
+indata_c$sample <- rownames(indata_c)
+indata_c$np <- matrix(unlist(strsplit(indata_c$sample,"_")),ncol=3,byrow=TRUE)[,1]
+n <- dim(indata_c)[2]
+indata_c <- indata_c[,c(n-1,n,1:(n-2))]
+indata_c[1,c(1,2)] <- c("","")
+indata_c[2,c(1,2)] <- c("","")
+
+# Write output files
+write.table(indata_ptm,outfile_ptm,row.names=FALSE,col.names=FALSE,sep=",")
+write.table(indata_c,outfile_c,row.names=FALSE,col.names=FALSE,sep=",")
+```

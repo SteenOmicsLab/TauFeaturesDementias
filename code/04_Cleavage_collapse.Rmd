@@ -1,0 +1,97 @@
+---
+title: "Combine individual cleavage site occurances for consecutive cleavages into region frequencies"
+author: "Christoph N. Schlaffner"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r setup, include=FALSE}
+options(stringsAsFactors=FALSE)
+
+substitueSeparators <- function(x) {
+  str_replace_all(str_replace_all(str_replace_all(str_replace_all(x,"@","."),"\\(","."),"\\)","."),"; ","..")
+}
+
+splitCleavages <- function(x) {
+  x_split <- unlist(strsplit(x,"_"))
+  isoform <- x_split[length(x_split)]
+  x <- str_replace_all(x,paste("_",isoform,sep=""),"")
+  x <- substitueSeparators(x)
+  x_split <- strsplit(x,"\\.")
+  y <- unlist(x_split)[nchar(unlist(x_split))>=1|!is.na(as.numeric(unlist(x_split)))]
+  idxs <- (which(!is.na(as.numeric(y)))+1)
+  
+  y <- insert(y,idxs,values=rep(x,length(which(!is.na(as.numeric(y))))))
+  extseq <- seq(0,length(idxs)-1,by=1)
+  idxs <- idxs + extseq + 1
+  insert(y,idxs,values=rep(isoform,length(which(!is.na(as.numeric(y))))))
+}
+```
+
+```{r setup, include=FALSE}
+# Input: Cleavage matrix with unique individual sites from 'CombineProteinPilotPhosphoAcetylOutput.Rmd'
+#        and manually created lookup table for individual sites mapping to consecutive cleavage regions
+Cleavagefile <- "./PP_INSOL_reformat_combine_C.csv"
+translationfile <- "./PP_INSOL_reduced_combine_C_translationtable.csv"
+
+# Output: File with individual cleavage sites with patient frequencies collapsed into cleavage regions
+collmeanfile <- "./PP_INSOL_reformat_combine_C_collmean.csv"
+```
+
+```{r setup, include=FALSE}
+Cleavagedata <- read.csv(Cleavagefile,header=FALSE)
+translationdata <- read.csv(translationfile,header=TRUE)
+colnames(translationdata) <- c("Original","V1","V6","V5","New","start","end")
+
+
+isoformcounts <- Cleavagedata[,c("V1","V2","V3","V4","V5","V6")]
+Cleavagedata <- Cleavagedata[,(Cleavagedata[1,]==""|Cleavagedata[2,]!="")]
+
+
+Cleavagesites <- Cleavagedata[2,-c(1,2)]
+Isosites <- Cleavagedata[1,-c(1,2)]
+Cleavagesites <- paste(Cleavagesites,Isosites,sep="_")
+df <- as.data.frame(matrix(unlist(lapply(Cleavagesites,splitCleavages)),ncol=5,byrow=TRUE))
+df.full <- df
+df <- df[,c(1:3,5)]
+df$V6 <- paste(df$V2,df$V3,sep="")
+df$V0 <- paste(df$V1,"(",df$V2,")@",df$V3,sep="")
+
+# identifying potential multi-column clavages to repeat before collapsing
+originalcols <- data.frame(Cleavage=c("ID","Neuropathology",substitueSeparators(Cleavagedata[2,-c(1,2)])),iso=c("ID","Neuropathology",substitueSeparators(Cleavagedata[1,-c(1,2)])),idx=seq(1,dim(Cleavagedata)[2],by=1))
+org <- c(1,2)
+maxlength <- dim(df.full)[1]
+for(i in 1:maxlength) {
+  tmp <- originalcols[which(originalcols$Cleavage==df.full$V4[i]),]
+  tmp <- tmp[tmp$iso==df.full$V5[i],]
+  org <- c(org,tmp$idx)
+}
+Cleavagedata2 <- Cleavagedata[,org]
+Cleavagedata2 <- Cleavagedata2[-c(1,2),]
+Cleavagedata.tmp <- as.data.frame(cbind(matrix(c("","","","","",""),ncol=2),t(df[,c("V1","V6","V5")])))
+colnames(Cleavagedata.tmp) <- colnames(Cleavagedata2)
+Cleavagedata2 <- as.data.frame(t(rbind(Cleavagedata.tmp,Cleavagedata2)))
+Cleavagedata2.head <- Cleavagedata2[c(1,2),]
+Cleavagedata2 <- Cleavagedata2[-c(1,2),]
+
+Cleavagedata2 <- merge(translationdata,Cleavagedata2)
+Cleavagedata2$V1 <- NULL
+Cleavagedata2$V6 <- NULL
+Cleavagedata2$Original <- NULL
+
+for(i in 5:dim(Cleavagedata2)[2]) {
+  Cleavagedata2[,i]  <- as.numeric(Cleavagedata2[,i])
+}
+
+# aggregate cleavage sites using the mean of frequencies
+Cleavagedata2.mean <- aggregate(Cleavagedata2[,-c(1:4)],by=list(Cleavagedata2$V5,Cleavagedata2$New,Cleavagedata2$start,Cleavagedata2$end),mean)
+colnames(Cleavagedata2.mean) <- colnames(Cleavagedata2)
+
+Cleavagedata2.mean$start <- NULL
+Cleavagedata2.mean$end <- NULL
+
+Cleavagedata2.mean <- cbind(isoformcounts,as.data.frame(t(Cleavagedata2.mean)))
+
+# write out output
+write.table(Cleavagedata2.mean,collmeanfile,quote=FALSE,na="",row.names=FALSE,col.names=FALSE,sep=",")
+```

@@ -1,0 +1,253 @@
+---
+title: "Figure 1 Panel E PTM cumulative overview (and Supplementary Figure S3)"
+author: "Christoph N. Schlaffner"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r, include=FALSE}
+options(stringsAsFactors = FALSE)
+library(ggplot2)
+library(R.utils)
+library(reshape2)
+library(circlize)
+library(gridExtra)
+library(ggpubr)
+library(stringr)
+library(scales)
+library(dendsort)
+library(GetoptLong)
+library(dendextend)
+
+
+substitueSeparators <- function(x) {
+  str_replace_all(str_replace_all(str_replace_all(str_replace_all(x,"@","."),"\\(","."),"\\)","."),"; ","..")
+}
+
+splitPTMs <- function(x) {
+  x_split <- unlist(strsplit(x,"_"))
+  isoform <- x_split[length(x_split)]
+  x <- str_replace_all(x,paste("_",isoform,sep=""),"")
+  x <- substitueSeparators(x)
+  x_split <- strsplit(x,"\\.")
+  y <- unlist(x_split)[nchar(unlist(x_split))>=1|!is.na(as.numeric(unlist(x_split)))]
+  idxs <- (which(!is.na(as.numeric(y)))+1)
+  
+  y <- insert(y,idxs,values=rep(x,length(which(!is.na(as.numeric(y))))))
+  extseq <- seq(0,length(idxs)-1,by=1)
+  idxs <- idxs + extseq + 1
+  insert(y,idxs,values=rep(isoform,length(which(!is.na(as.numeric(y))))))
+}
+```
+
+```{r, include=FALSE}
+# Input INSOLUBLE: PTM matrix for reduced individual PTM sites from '.Rmd'
+#infile <- "./PP_INSOL_reformat_combine_reduced.csv"
+#helperfile <- "./PP_INSOL_reformat_combine_reduced_help.csv"
+# Output INSOLUBLE: Figure 1 Panel E in PNG format
+#outfile <- "./Figure1PanelE.png"
+
+# Input SOLUBLE: PTM matrix for reduced individual PTM sites from '.Rmd'
+infile <- "./PP_SOL_reformat_combine_reduced.csv"
+helperfile <- "./PP_SOL_reformat_combine_reduced_help.csv"
+# Output SOLUBLE: Figure 1 Panel E in PNG format
+outfile <- "./FigureS3.png"
+
+indata <- read.csv(infile,header=FALSE)
+# Filter any modification not to be shown in overview and isoform information
+indata <- indata[,!(indata[2,]%in%c("Oxidation","Deamidated","Iso-0N","Iso-1N","Iso-2N4R","Iso-3R"))]
+
+PTMsites <- indata[1,-c(1,2)]
+
+# splitting PTM ID into PTM type, site and modified amino acid
+df <- as.data.frame(matrix(unlist(lapply(PTMsites,splitPTMs)),ncol=5,byrow=TRUE))
+df <- df[,c(1:3,5)]
+df$V6 <- paste(df$V2,df$V3,sep="")
+df$V0 <- paste(df$V1,"(",df$V2,")@",df$V3,sep="")
+df$V01 <- paste(df$V0,"_",df$V5,sep="")
+df$V3 <- as.numeric(df$V3)
+
+# rename columns, deduplicate and reappend PTM names to dataframe
+colnames(indata) <- c("ID","Neuropathology",df$V01)
+indata.tmp <- as.data.frame(cbind(matrix(c("","","","","",""),ncol=2),t(df[,c("V1","V6","V5")])))
+colnames(indata.tmp) <- colnames(indata)
+indata <- as.data.frame(t(rbind(indata.tmp,indata)))
+indata.head <- indata[c(1,2),]
+indata <- indata[-c(1,2),]
+
+indata <- indata[,-c(3,4,5,6,7)]
+indata.head <- indata.head[,-c(3,4,5,6,7)]
+indata <- aggregate(. ~ V1+V6,data=indata,max,na.rm=TRUE)
+df$V01 <- NULL
+df$V5 <- NULL
+df <- df[!duplicated(df),]
+
+indata <- merge(df,indata,all=TRUE)
+indata$V3 <- as.numeric(indata$V3)
+indata <- indata[order(indata$V3,indata$V1),]
+indata$V2 <- NULL
+indata$V3 <- NULL
+rownames(indata) <- indata$V0
+indata$V0 <- NULL
+indata <- as.data.frame(t(rbind(indata.head,indata)))
+
+df.full <- df
+```
+
+```{r, include=FALSE}
+### calculate frequency per disease group
+indata2.head <- indata[c(1,2),]
+indata2.head$ID <- NULL
+indata2 <- indata[-c(1,2),]
+rownames(indata2) <- paste(indata[-c(1,2),]$ID,indata[-c(1,2),]$Neuropathology,sep="_")
+indata2$ID <- NULL
+indata2[,-1] <- apply(indata2[,-1],2,function(x){as.numeric(x)})
+indata2 <- aggregate(.~Neuropathology,data=indata2,mean)
+indata2 <- as.data.frame(t(rbind(indata2.head,indata2)))
+indata2 <- merge(df,indata2,all=TRUE)
+# indices for the different tauopathy groups (INSOLUBLE: indata2[1,5:13], SOLUBLE: indata2[1,5:12])
+colnames(indata2) <- c("modification","site","AA","seg.po",indata2[1,5:12])
+indata2 <- indata2[-1,]
+
+indata2$AD <- as.numeric(indata2$AD)
+indata2$CBD <- as.numeric(indata2$CBD)
+indata2$CTE <- as.numeric(indata2$CTE)
+indata2$CTR <- as.numeric(indata2$CTR)
+indata2$DLB <- as.numeric(indata2$DLB)
+indata2$PiD <- as.numeric(indata2$PiD)
+indata2$PSP <- as.numeric(indata2$PSP)
+# fAD only for INSOLUBLE
+#indata2$fAD <- as.numeric(indata2$fAD)
+
+indata2 <- indata2[,-c(5)]
+
+# summarize frequency over whole dataset per PTM site and potentially filter based on overall frequency
+# (INSOLUBLE: indata2[,c(5:12)]; SOLUBLE: indata2[,c(5:11)])
+indata2 <- indata2[apply(indata2[,c(5:11)],1,sum)>0.0,]
+indata2$seg.po <- as.numeric(indata2$seg.po)
+
+# set dataframe for tau sequence regions
+seg.f <- data.frame(seg.name=c("N-term","N1","N2","mid","PRR","R1","R2","R3","R4","C-term"),seg.Start=c(1,45,74,103,151,242,273,304,335,372),seg.End=c(44,73,102,150,241,272,303,334,371,441),the.v=c(NA),NO=c(NA))
+seg.name <- c("N-term","N1","N2","mid","PRR","R1","R2","R3","R4","C-term")
+
+# add annotation of tau region segment to PTM data matrix and reorder matrix columns
+indata2$seg.name <- lapply(indata2$seg.po,function(x,mapping){ mapping$seg.name[which(x>= mapping$seg.Start)[which(x>=mapping$seg.Start)%in%which(x<=mapping$seg.End)]] },seg.f)
+# for INSOLUBLE
+#indata2 <- indata2[,c("seg.name","AA","seg.po","AD","CBD","CTE","CTR","DLB","fAD","PiD","PSP","modification","site")]
+# for SOLUBLE
+indata2 <- indata2[,c("seg.name","AA","seg.po","AD","CBD","CTE","CTR","DLB","PiD","PSP","modification","site")]
+
+# prepare
+df <- indata2[,c("modification","AA","seg.po","site")]
+colnames(df) <- c("V1","V2","V3","V5")
+df <- df[order(df$V3),]
+minval <- 0.08
+df$V4 <- rep(-1*minval,dim(df)[1])
+df$V3 <- as.numeric(df$V3)
+df$V5 <- paste(df$V2,df$V3,sep="")
+```
+
+```{r, include=FALSE}
+# step height factor for distance along the y-axis in visualization
+ddd <- 0.03
+
+# set dataframe for central tau sequence visualization with region
+df2 <- data.frame(x1=c(1,45,74,103,151,242,273,304,335,372),x2=c(45,74,103,151,242,273,304,335,372,441),y1=rep(-ddd*(2/3),10),y2=rep(ddd*(2/3),10),colo=c("A","B","B","A","B","B","B","B","B","A"),name=c("","N1","N2","","Proline-rich region","R1","R2","R3","R4",""))
+
+# use manually created helper file providing overall height and label positioning
+# Cum_height refers to the level starting from 1 (closest to the middle sequence) to N (max height)
+# Cum_orient refers to the orientation with -1 (right align), 0 (centered), 1 (left align) of text
+# and Cumtext_height refers to the relative position of text for multiple PTMs for same site
+helperdata <- read.csv(helperfile,header=FALSE)
+helperdata <- helperdata[!(helperdata$V2=="GG" & helperdata$V3=="S316"),]
+
+helperdata <- helperdata[,(helperdata[1,]%in%c("ID","","Cum_Insol","Cum_height","Cum_orient","Cumtext_height"))&(helperdata[2,]%in%c("Neuropathology","","Cum"))]
+helperdata <- helperdata[helperdata[,5]!="0",]
+helperdata <- helperdata[-c(1,2),]
+colnames(helperdata) <- c("string","V1","V5","iso","cum","height","orientation","textoffset")
+helperdata$iso <- NULL
+helperdata <- helperdata[!duplicated(helperdata),]
+
+# calculating y-axis heights for PTM annotations
+helperdata$y <- (as.numeric(helperdata$height)*ddd)+ddd/2
+helperdata$ytext <- ((as.numeric(helperdata$height)+(as.numeric(helperdata$textoffset)*(2/3)))*ddd)+ddd/2
+
+# add y-axis height data to label data
+df <- merge(df,helperdata,all=TRUE)
+df <- df[,c("V1","V2","V3","V5","y","ytext","orientation")]
+colnames(df) <- c("V1","V2","V3","V5","V4","V44","V6")
+df <- df[!(df$V1=="GG" & df$V2=="S"),]
+
+# differentiate Phosphorylation from other PTMs (visualize Phospho above sequence and other PTMs below sequence)
+df[df$V1!="Phospho",]$V4 <--1*df[df$V1!="Phospho",]$V4
+df[df$V1!="Phospho",]$V44 <--1*df[df$V1!="Phospho",]$V44
+df$V6 <- as.numeric(df$V6)
+
+# set plot parameters
+titlesize <- 12
+axistitlesize <- 10
+axistextsize <- 10
+margin.top <- 1
+margin.left <- 1
+margin.other <- 0.0
+textsize <- 4
+ratio <- 4/5
+align <- 0.03
+
+col = c("Acetyl"="#93478F","GG"="#7AB77C","Methyl"="#C35728","Phospho"="#000000","Citrullination"="#FF17E3","Deamidated"="#6C7EBC")
+taucol <- c("B"="#E6E6E6","A"="#F9F9F9")
+combcol <- c(taucol)
+
+# extract and set max/min x and y data
+xmaxcoord <- 442
+
+offset <- 15
+ddd1 <- 0.015
+
+# factor for conversion from PNG to PDF output
+pdfcorrect <- 5
+
+# generating cumulative overview plot
+g1 <- ggplot() +
+  geom_linerange(data=df,aes(x=V3,y=V4,ymax=V4,ymin=ifelse(V4 > 0, ddd1, -ddd1)),linewidth=0.5) +
+  geom_text(data=df,aes(x=ifelse(V6<0,ifelse(V3>99,V3-4.8,V3-3.8),ifelse(V6>0,ifelse(V3>99,V3+4.5,V3+3.5),V3)),y=V44,color=V1,label=V5),size=textsize-1,nudge_y=ifelse(df$V44 > 0, ddd1/2, -(ddd1/2)),fontface="bold") +
+  geom_rect(data=df2,mapping=aes(xmin=x1,xmax=x2,ymin=y1,ymax=y2,fill=colo),color="#AAAAAA") +
+  geom_text(data=df2,aes(x=x1+(x2-x1)/2,y=y1+(y2-y1)/2,label=name),size=textsize,fontface="bold") +
+  xlim(-20+offset,xmaxcoord) + theme_void() + theme(legend.position="none",plot.margin=margin(0,0,0,0,"cm")) + 
+  scale_fill_manual(values=combcol) +
+  scale_color_manual(values=col) +
+  # add tau sequence information to N-/C-term of middle sequence
+  annotate("text",x=-5,y=0.045,label="2N4R-Tau",colour="#AAAAAA",hjust=0,size=textsize,fontface="bold") +
+  annotate("text",x=-4,y=0,label="1",colour="#AAAAAA",hjust=0,size=textsize-1,fontface="bold") +
+  annotate("text",x=xmaxcoord,y=0,label="441",colour="#AAAAAA",hjust=0,size=textsize-1,fontface="bold") +
+  # add text annotations as legend (for INSOLUBLE)
+  #ylim(min(df$V44)-0.05,max(df$V44)+0.05) +
+  #annotate("text",x=-19+offset,y=max(df$V44),label="Legend:",colour="black",hjust=0,size=textsize,fontface="bold") +
+  #annotate("text",x=-19+offset,y=max(df$V44)-align,label="Phosphorylation",colour=col["Phospho"],hjust=0,size=textsize-1,fontface="bold") +
+  #annotate("text",x=18+offset-pdfcorrect,y=max(df$V44)-align,label="/",colour="black",hjust=0,size=textsize-1,fontface="bold") +
+  #annotate("text",x=20+offset-pdfcorrect,y=max(df$V44)-align,label="Ubiquitination",colour=col["GG"],hjust=0,size=textsize-1,fontface="bold") +
+  #annotate("text",x=52+offset-2*pdfcorrect,y=max(df$V44)-align,label="/",colour="black",hjust=0,size=textsize-1,fontface="bold") +
+  #annotate("text",x=54+offset-2*pdfcorrect,y=max(df$V44)-align,label="Acetylation",colour=col["Acetyl"],hjust=0,size=textsize-1,fontface="bold") +
+  #annotate("text",x=-19+offset,y=max(df$V44)-align*2,label="Methylation",colour=col["Methyl"],hjust=0,size=textsize-1,fontface="bold") +
+  #annotate("text",x=8+offset-pdfcorrect,y=max(df$V44)-align*2,label="/",colour="black",hjust=0,size=textsize-1,fontface="bold") +
+  #annotate("text",x=10+offset-pdfcorrect,y=max(df$V44)-align*2,label="Citrullination",colour=col["Citrullination"],hjust=0,size=textsize-1,fontface="bold")
+  # add text annotations as legend (for SOLUBLE)
+  ylim(-0.315-0.05,0.285+0.05) +
+  annotate("text",x=-19+offset,y=0.285,label="Legend:",colour="black",hjust=0,size=textsize,fontface="bold") +
+  annotate("text",x=-19+offset,y=0.285-align,label="Phosphorylation",colour=col["Phospho"],hjust=0,size=textsize-1,fontface="bold") +
+  annotate("text",x=18+offset-pdfcorrect,y=0.285-align,label="/",colour="black",hjust=0,size=textsize-1,fontface="bold") +
+  annotate("text",x=20+offset-pdfcorrect,y=0.285-align,label="Ubiquitination",colour=col["GG"],hjust=0,size=textsize-1,fontface="bold") +
+  annotate("text",x=52+offset-2*pdfcorrect,y=0.285-align,label="/",colour="black",hjust=0,size=textsize-1,fontface="bold") +
+  annotate("text",x=54+offset-2*pdfcorrect,y=0.285-align,label="Acetylation",colour=col["Acetyl"],hjust=0,size=textsize-1,fontface="bold") +
+  annotate("text",x=-19+offset,y=0.285-align*2,label="Methylation",colour=col["Methyl"],hjust=0,size=textsize-1,fontface="bold") +
+  annotate("text",x=8+offset-pdfcorrect,y=0.285-align*2,label="/",colour="black",hjust=0,size=textsize-1,fontface="bold") +
+  annotate("text",x=10+offset-pdfcorrect,y=0.285-align*2,label="Citrullination",colour=col["Citrullination"],hjust=0,size=textsize-1,fontface="bold")
+  
+
+# print plot to output device 'png'
+layout <- rbind(c(1))
+diseaseplotsPTM2 <- list() 
+diseaseplotsPTM2[[1]] <- g1
+p_total <- grid.arrange(grobs=diseaseplotsPTM2,layout_matrix=layout)
+ggsave(outfile,p_total,device="png",width=8,height=2.3,units="in",scale=2)
+```
