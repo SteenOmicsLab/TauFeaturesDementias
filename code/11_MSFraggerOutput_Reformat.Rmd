@@ -1,0 +1,36 @@
+---
+title: "Reformatting of aggregated MSFragger output"
+author: "Christoph N. Schlaffner"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r, include=FALSE}
+options(stringsAsFactors = FALSE)
+library(reshape2)
+
+infile <- "MSFragger_INSOL_agg.csv"
+#infile <- "MSFragger_SOL_agg.csv"
+
+indata <- read.csv(infile,header=TRUE)
+
+indata <- dcast(indata, Sample ~ Sequence, value.var="Intensity",fun.aggregate=mean)
+
+outfile <- "MSFragger_INSOL_agg_wide.csv"
+#outfile <- "MSFragger_SOL_agg_wide.csv"
+indata[indata==0] <- NA
+
+indata <- as.data.frame(t(indata))
+colnames(indata) <- indata[1,]
+indata <- indata[-c(1),]
+
+samples <- colnames(indata)
+indata$top3counts <- rep(0,dim(indata)[1])
+
+for(sample in samples) {
+  indata <- indata[order(as.numeric(indata[,c(sample)]),decreasing=TRUE),]
+  indata[c(1,2,3),]$top3counts <- indata[c(1,2,3),]$top3counts + 1 
+}
+
+write.csv(indata,file=outfile,quote=FALSE,na="",row.names=TRUE)
+```

@@ -1,5 +1,5 @@
 ---
-title: "Figure 5 TSNE visualization of RF classifiers with classifier AUC data"
+title: "Figure 5 (and Supplementary Figure S4) TSNE visualization of RF classifiers with classifier AUC data"
 author: "Christoph N. Schlaffner"
 output:
   pdf_document: default
@@ -9,32 +9,26 @@ output:
 options(stringsAsFactors=FALSE)
 library(ggplot2)
 library(R.utils)
-#library(OmicCircos)
 library(reshape2)
-#library(fmsb)
 library(circlize)
 library(grid)
 library(gridExtra)
-#library(lattice)
 library(ggpubr)
 library(stringr)
-#library(ggtext)
-#library(rlang)
 library(ggpmisc)
 
-path <- "D:/Data/Tau_comparisonpaper/FigureScripts/FINALSet/ForShaojun/"
-ROCfile <- "ComparisonManuscript_CTR-DLBcomb_20240607_RF_ROC.csv"
-FLEXIfile <- "FLEXITau_ComparisonManuscript_Main_15Features_CTR-DLBcomb_20250131_5Features.csv"
-PTMfile <- "PTM_ComparisonManuscript_Main_CTR-DLBcomb_20250131_5Features.csv"
-Cleavfile <- "Cleavage_ComparisonManuscript_Main_CTR-DLBcomb_20250131_5Features.csv"
-outfilename <- paste(path,"TSNE_top5_totalisoincl_20250131.pdf",sep="")
+ROCfile <- "INSOL_Primary_RF_ROCs.csv"
+FLEXIfile <- "FLEXITau_INSOL_Primary_5Features_TSNE.csv"
+PTMfile <- "PP_PTM_INSOL_RFfilter_5Features_TSNE.csv"
+Cleavfile <- "PP_Cleavage_INSOL_RFfilter_5Features_TSNE.csv"
+outfilename <- "Figure5PanelsBCD.pdf"
 
-ROCdata <- read.csv(paste(path,ROCfile,sep=""),header=TRUE)
+ROCdata <- read.csv(ROCfile,header=TRUE)
 ROCdata$Neuropathology <- factor(ROCdata$Neuropathology,levels=c(c("CTR","PSP","PiD","CBD","CTE","AD")))
 ROCdata <- ROCdata[order(ROCdata$Neuropathology),]
-PTMdata <- read.csv(paste(path,PTMfile,sep=""),header=TRUE)
-Cleavdata <- read.csv(paste(path,Cleavfile,sep=""),header=TRUE)
-FLEXIdata <- read.csv(paste(path,FLEXIfile,sep=""),header=TRUE)
+PTMdata <- read.csv(PTMfile,header=TRUE)
+Cleavdata <- read.csv(Cleavfile,header=TRUE)
+FLEXIdata <- read.csv(FLEXIfile,header=TRUE)
 
 titlesize <- 12
 axistitlesize <- 10
@@ -52,7 +46,6 @@ PTMtable <- PTMtable[!(PTMtable[,1]%in%c("CBD","CTE","AD","")),]
 rownames(PTMtable2) <- rownames(PTMtable)
 PTMtable <- cbind(PTMtable,PTMtable2)
 colnames(PTMtable) <- c(newname,paste(newname," ",sep=""))
-#PTMtable <- tidyr::tibble(x=-20,y=11,tb=list(PTMtable))
 PTMtable <- tidyr::tibble(x=-11,y=15,tb=list(PTMtable))
 ptm <- ggplot(PTMdata,aes(x=x,y=y,color=disease,fill=disease)) +
   stat_ellipse(geom="polygon",alpha=0.05,level=0.65) +
@@ -93,7 +86,6 @@ Cleavtable <- Cleavtable[!(Cleavtable[,1]%in%c("CBD","CTE","AD","")),]
 rownames(Cleavtable2) <- rownames(Cleavtable)
 Cleavtable <- cbind(Cleavtable,Cleavtable2)
 colnames(Cleavtable) <- c(newname,paste(newname," ",sep=""))
-#Cleavtable <- tidyr::tibble(x=-6,y=28,tb=list(Cleavtable))
 Cleavtable <- tidyr::tibble(x=-5,y=25,tb=list(Cleavtable))
 cleav <- ggplot(Cleavdata,aes(x=x,y=y,color=disease,fill=disease)) +
   stat_ellipse(geom="polygon",alpha=0.05,level=0.5) +
@@ -134,7 +126,6 @@ FLEXItable <- FLEXItable[!(FLEXItable[,1]%in%c("CBD","CTE","AD","")),]
 rownames(FLEXItable2) <- rownames(FLEXItable)
 FLEXItable <- cbind(FLEXItable,FLEXItable2)
 colnames(FLEXItable) <- c(newname,paste(newname," ",sep=""))
-#FLEXItable <- tidyr::tibble(x=-15,y=15,tb=list(FLEXItable))
 FLEXItable <- tidyr::tibble(x=-20,y=5,tb=list(FLEXItable))
 flexi <- ggplot(FLEXIdata,aes(x=x,y=y,color=disease,fill=disease)) +
   stat_ellipse(geom="polygon",alpha=0.05,level=0.65) +
@@ -173,6 +164,4 @@ blank <- grid.rect(gp=gpar(col="white"))
 layout <- t(cbind(c(1,2,3)))
 p_total <- grid.arrange(grobs=list(ptm.g,cleav.g,flexi.g),layout_matrix=layout)
 ggsave(outfilename,p_total,device="pdf",width=8.26,height=3.18,units="in",scale=1.5)
-
-#ggarrange(ptm.g,cleav.g,flexi.g,ncol=3,labels=c("B","C","D"),font.label=list(size=22)) %>% ggexport(filename=outfilename,width=6500,height=2500,res=600)
 ```

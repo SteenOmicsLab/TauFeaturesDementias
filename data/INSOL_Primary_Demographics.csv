@@ -1,0 +1,204 @@
+Group,SampleID,BrainBank,Age at Death,Sex,PMI [hours],Braak Stage,NPDX1,NPDX2
+AD,AD_01,MADRC,77,Female,28,VI,AD,Cerebrovascular Disease
+AD,AD_02,MADRC,66,Female,14,VI,AD,Cerebrovascular Disease
+AD,AD_03,MADRC,>=90,Female,9,VI,AD,Infarcts
+AD,AD_04,MADRC,>=90,Male,23,IV,AD,Cerebrovascular Disease
+AD,AD_05,MADRC,76,Male,12,V,AD,DLB
+AD,AD_06,MADRC,84,Male,7,VI,AD,Cerebral Amyloid Angiopathy
+AD,AD_07,MADRC,76,Male,22,VI,AD,Cerebral Amyloid Angiopathy
+AD,AD_08,MADRC,89,Male,6,VI,AD,Cerebrovascular Disease
+AD,AD_09,MADRC,>=90,Male,23,VI,AD,Cerebral Amyloid Angiopathy
+AD,AD_10,MADRC,58,Female,11,VI,AD,Cerebral Amyloid Angiopathy
+AD,AD_11,MADRC,64,Female,16,VI,AD,Cerebral Amyloid Angiopathy
+AD,AD_12,MADRC,58,Female,12,VI,AD,Cerebral Amyloid Angiopathy
+AD,AD_13,MADRC,75,Female,18,VI,AD,Cerebrovascular Disease
+AD,AD_14,MADRC,86,Male,20,VI,AD,Meningioma
+AD,AD_15,HBSFRC,75,Female,19.8,V,AD,
+AD,AD_16,HBSFRC,81,Female,6.7,V,AD,Arteriolosclerosis
+AD,AD_17,HBSFRC,89,Female,18.4,,AD,Infarcts
+AD,AD_18,HBSFRC,78,Male,12,IVV,AD,Parkinson's Disease
+AD,AD_19,HBTRC,77,Male,4.93,V,AD,Microscopic atrophic lesion of uncertain origin
+AD,AD_20,HBTRC,76,Female,12.08,VI,AD,Arteriolosclerosis
+AD,AD_21,MADRC,67,Male,8,VI,AD,DLB
+AD,AD_22,MADRC,75,Female,18,VI,AD,DLB
+AD,AD_23,MADRC,>=90,Female,7,V,AD,DLB
+AD,AD_24,MADRC,66,Female,10,VI,AD,Cerebrovascular Disease
+AD,AD_25,MADRC,>=90,Male,12,VI,AD,Cerebrovascular Disease
+AD,AD_30,MADRC,63,Female,20,VI,AD,Arteriolosclerosis
+AD,AD_31,MADRC,81,Male,23,VI,AD,Arteriolosclerosis
+AD,AD_32,MADRC,84,Male,13,V,AD,Cerebrovascular Disease
+AD,AD_33,MADRC,85,Female,24,V,AD,Arteriolosclerosis
+AD,AD_34,MADRC,84,Male,21,VI,AD,Cerebrovascular Disease
+AD,AD_35,HBSFRC,74,Female,10.5,,AD,Hemorrhage
+AD,AD_36,HBSFRC,87,Female,18.4,VVI,AD,
+AD,AD_37,HBSFRC,78,Female,12.3,,AD,Arteriolosclerosis
+AD,CAA_01,MADRC,87,Female,4,VI,AD,AD
+CBD,CBD_01,MADRC,64,Male,18,O,CBD,Cerebrovascular Disease
+CBD,CBD_02,MADRC,61,Male,14,O,CBD,Cerebrovascular Disease
+CBD,CBD_03,MADRC,63,Female,1,,CBD,Cerebrovascular Disease
+CBD,CBD_04,MADRC,64,Male,18,O,CBD,Cerebrovascular Disease
+CBD,CBD_05,MADRC,67,Female,17,II,CBD,AD
+CBD,CBD_06,MADRC,71,Male,18,II,CBD,AD
+CBD,CBD_07,MADRC,80,Male,12,I,CBD,Cerebrovascular Disease
+CBD,CBD_08,MADRC,74,Male,18,,CBD,
+CBD,CBD_09,MADRC,86,Male,6,,CBD,
+CBD,CBD_10,MADRC,73,Male,20,III,CBD,
+CBD,CBD_11,MADRC,79,Female,21,,CBD,
+CBD,CBD_12,MADRC,70,Male,20,,CBD,
+CBD,CBD_13,UMB BTB,88,Female,6,,CBD,
+CBD,CBD_14,UMB BTB,77,Male,11,,CBD,
+CBD,CBD_15,UMB BTB,81,Male,12,,CBD,
+CBD,CBD_16,UMB BTB,79,Female,19,,CBD,
+CBD,CBD_17,UMB BTB,70,Male,4,,CBD,Infarcts
+CBD,CBD_18,UMB BTB,78,Female,2,,CBD,
+CBD,CBD_19,Mayo,68,Male,,II,CBD,
+CBD,CBD_20,Mayo,67,Female,,III,CBD,
+CBD,CBD_21,Mayo,64,Male,,OI,CBD,
+CBD,CBD_22,Mayo,70,Male,11,II,CBD,
+CBD,CBD_23,Mayo,58,Male,,I,CBD,
+CBD,CBD_24,Mayo,69,Male,,II,CBD,
+CBD,CBD_25,Mayo,68,Female,,O,CBD,
+CBD,CBD_26,Mayo,73,Female,,II,CBD,
+CBD,CBD_27,Mayo,71,Male,,II,CBD,
+CBD,CBD_28,Mayo,70,Male,9,O,CBD,
+CBD,CBD_29,Mayo,65,Male,14,I,CBD,
+CBD,CBD_30,Mayo,69,Female,3,I,CBD,
+CBD,CBD_31,Mayo,69,Female,13,IIIII,CBD,
+CBD,CBD_32,Mayo,65,Female,15,O,CBD,
+CBD,CBD_33,Mayo,66,Male,11,III,CBD,
+CTE,CTE_01,VA-BU-CLF,64,Male,72,,CTE,
+CTE,CTE_02,VA-BU-CLF,66,Male,23,O,CTE,
+CTE,CTE_03,VA-BU-CLF,82,Male,58,,CTE,
+CTE,CTE_04,VA-BU-CLF,80,Male,31,II,CTE,Hippocampal Sclerosis with TDP43
+CTE,CTE_05,VA-BU-CLF,64,Male,72,II,CTE,
+CTE,CTE_06,VA-BU-CLF,65,Male,48,,CTE,
+CTE,CTE_07,VA-BU-CLF,68,Male,29,,CTE,
+CTE,CTE_08,VA-BU-CLF,25,Male,27,O,CTE,Hippocampal Sclerosis with TDP43
+CTE,CTE_09,VA-BU-CLF,47,Male,47,,CTE,
+CTE,CTE_10,VA-BU-CLF,84,Male,49,III,CTE,
+CTE,CTE_11,VA-BU-CLF,44,Male,36,O,CTE,
+CTE,CTE_12,VA-BU-CLF,66,Male,<72,III,CTE,
+CTE,CTE_13,VA-BU-CLF,77,Male,39,III,CTE,
+CTE,CTE_14,VA-BU-CLF,46,Male,72,III,CTE,
+CTE,CTE_15,VA-BU-CLF,70,Male,37,,CTE,
+CTE,CTE_16,VA-BU-CLF,79,Male,?,III,CTE,Hippocampal Sclerosis with TDP43
+CTE,CTE_17,VA-BU-CLF,60,Male,30,,CTE,
+CTE,CTE_18,VA-BU-CLF,85,Male,55,III,CTE,Hippocampal Sclerosis with TDP43
+CTE,CTE_19,VA-BU-CLF,87,Male,48,,CTE,
+CTE,CTE_20,VA-BU-CLF,74,Male,72,,CTE,
+CTE,CTE_21,VA-BU-CLF,79,Male,48,III,CTE,
+CTE,CTE_22,VA-BU-CLF,70,Male,39,,CTE,
+CTE,CTE_23,VA-BU-CLF,57,Male,47,IV,CTE,Hippocampal Sclerosis with TDP43
+CTE,CTE_24,VA-BU-CLF,62,Male,48,O,CTE,Hippocampal Sclerosis with TDP43
+CTRL,CTRL_01,MADRC,76,Female,17,III,CTRL,Cerebrovascular Disease
+CTRL,CTRL_02,MADRC,89,Female,8,I,CTRL,Cerebrovascular Disease
+CTRL,CTRL_03,MADRC,>=90,Female,18,III,CTRL,Cerebrovascular Disease
+CTRL,CTRL_04,MADRC,>=90,Male,21,II,CTRL,Infarcts
+CTRL,CTRL_05,MADRC,79,Female,9,II,CTRL,Arteriolosclerosis
+CTRL,CTRL_06,MADRC,60,Male,14,O,CTRL,
+CTRL,CTRL_07,MADRC,>=90,Female,12,I,CTRL,Cerebrovascular Disease
+CTRL,CTRL_08,MADRC,63,Male,16,O,CTRL,Cerebrovascular Disease
+CTRL,CTRL_09,MADRC,>=90,Female,12,II,CTRL,Cerebrovascular Disease
+CTRL,CTRL_10,MADRC,60,Female,15,,CTRL,Cerebrovascular Disease
+CTRL,CTRL_11,MADRC,57,Female,13,,CTRL,
+CTRL,CTRL_12,MADRC,34,Male,11,,CTRL,
+CTRL,CTRL_13,MADRC,88,Female,16,II,CTRL,Hemorrhage
+CTRL,CTRL_14,MADRC,>=90,Female,12,,CTRL,Cerebrovascular Disease
+CTRL,CTRL_15,HBSFRC,75,Male,11.5,O,CTRL,
+CTRL,CTRL_16,HBSFRC,68,Male,10.5,O,CTRL,
+CTRL,CTRL_17,HBSFRC,58,Male,9,O,CTRL,
+CTRL,CTRL_18,HBSFRC,57,Male,12.6,O,CTRL,
+CTRL,CTRL_19,HBSFRC,75,Female,15.4,O,CTRL,
+CTRL,CTRL_20,HBTRC,64,Male,14.33,I,CTRL,Arteriolosclerosis
+CTRL,CTRL_21,MADRC,,Female,,II,CTRL,Cerebrovascular Disease
+CTRL,CTRL_22,MADRC,54,Male,6,O,CTRL,Cerebrovascular Disease
+CTRL,CTRL_23,MADRC,>=90,Male,23,II,CTRL,Cerebrovascular Disease
+CTRL,CTRL_24,MADRC,87,Male,21,II,CTRL,Cerebrovascular Disease
+DLB,DLB_01,MADRC,75,Male,18,I,DLB,Cerebrovascular Disease
+DLB,DLB_02,MADRC,76,Male,27,III,DLB,AD
+DLB,DLB_03,MADRC,86,Female,24,III,DLB,AD
+DLB,DLB_04,MADRC,76,Male,8,III,DLB,AD
+DLB,DLB_05,MADRC,87,Male,26,III,DLB,AD
+DLB,DLB_06,MADRC,82,Male,109,II,DLB,AD
+DLB,DLB_07,MADRC,77,Male,36,III,DLB,AD
+DLB,DLB_08,MADRC,67,Male,20,IV,DLB,AD
+DLB,DLB_09,MADRC,84,Male,72,III,DLB,AD
+DLB,DLB_10,MADRC,74,Male,25,IV,DLB,Cerebral Amyloid Angiopathy
+DLB,DLB_11,MADRC,>=90,Female,32,,DLB,Hippocampal Sclerosis
+DLB,DLB_12,MADRC,79,Male,6,II,DLB,AD
+DLB,DLB_13,MADRC,85,Male,18,IV,DLB,
+DLB,DLB_14,MADRC,82,Male,9,,DLB,
+fAD,fAD_26,MADRC,52,Male,10,VI,AD,DLB
+fAD,fAD_27,MADRC,58,Male,30,VI,AD,Cerebral Amyloid Angiopathy
+fAD,fAD_28,MADRC,59,Female,12,VI,AD,Cerebrovascular Disease
+fAD,fAD_29,MADRC,53,Female,53,VI,AD,Cerebral Amyloid Angiopathy
+AD,FTLD-Tau_01,MADRC,71,Female,4,IV,AD,AD
+CBD,FTLD-Tau_02,MADRC,70,Female,12,,CBD,Cerebrovascular Disease
+PSP,FTLD-Tau_03,MADRC,61,Male,18,,PSP,Cerebrovascular Disease
+AD,NPCAD_01,VA-BU-CLF,89,Male,26,III,AD,
+AD,NPCAD_02,VA-BU-CLF,78,Male,3,,AD,Cerebrovascular Disease
+AD,NPCAD_03,VA-BU-CLF,91,Male,26,II,AD,
+AD,NPCAD_04,VA-BU-CLF,74,Male,<24,,AD,
+AD,NPCAD_05,VA-BU-CLF,101,Male,9,III,AD,
+AD,NPCAD_06,VA-BU-CLF,72,Male,21,VI,AD,Cerebrovascular Disease
+AD,NPCAD_07,VA-BU-CLF,88,Male,17,IV,AD,
+PiD,PiD_01,MADRC,62,Male,7,,PiD,Cerebrovascular Disease
+PiD,PiD_02,MADRC,69,Male,14,,PiD,Cerebrovascular Disease
+PiD,PiD_03,MADRC,70,Male,2,,PiD,
+PiD,PiD_04,MADRC,73,Female,24,O,PiD,Frontotemporal Lobar Degeneration
+PiD,PiD_05,MADRC,79,Male,24,O,PiD,Cerebrovascular Disease
+PiD,PiD_06,MADRC,>=90,Female,21,IV,PiD,AD
+PiD,PiD_07,MADRC,72,Male,8,O,PiD,
+PiD,PiD_08,MADRC,62,Male,19,,PiD,AD
+PiD,PiD_09,MADRC,58,Male,15,,PiD,
+PiD,PiD_10,MADRC,78,Male,12,,PiD,Cerebrovascular Disease
+PiD,PiD_11,MADRC,71,Female,12,,PiD,Cerebrovascular Disease
+PiD,PiD_12,MADRC,80,Male,7,IV,PiD,AD
+PiD,PiD_13,MADRC,71,Female,13,,PiD,
+PiD,PiD_14,MADRC,66,Female,12,,PiD,Amyotrophic Lateral Sclerosis
+PiD,PiD_15,HBSFRC,75,Male,6,,PiD,
+PiD,PiD_16,HBSFRC,72,Female,9.5,,PiD,
+PiD,PiD_17,HBSFRC,73,Male,10,,PiD,
+PiD,PiD_18,HBTRC,84,Male,20.55,,PiD,Demyelinated Plaque
+PiD,PiD_19,HBTRC,58,Male,19.62,,PiD,Arteriolosclerosis
+PiD,PiD_20,HBTRC,79,Male,11.97,I,PiD,Neurofibrillary Degeneration
+PSP,PSP_01,MADRC,70,Female,13,I,PSP,Cerebrovascular Disease
+PSP,PSP_02,MADRC,78,Female,6,,PSP,Cerebrovascular Disease
+PSP,PSP_03,MADRC,>=90,Male,22,O,PSP,
+PSP,PSP_04,MADRC,80,Female,22,O,PSP,Infarcts
+PSP,PSP_05,MADRC,73,Female,12,I,PSP,Cerebrovascular Disease
+PSP,PSP_06,MADRC,73,Male,12,O,PSP,Infarcts
+PSP,PSP_07,MADRC,78,Male,11,II,PSP,Hemorrhage
+PSP,PSP_08,MADRC,77,Female,7,O,PSP,
+PSP,PSP_09,MADRC,79,Male,10,O,PSP,Hippocampal Sclerosis
+PSP,PSP_10,MADRC,63,Female,12,,PSP,Cerebrovascular Disease
+PSP,PSP_11,MADRC,60,Female,6,,PSP,Cerebrovascular Disease
+PSP,PSP_12,MADRC,70,Male,3,,PSP,
+PSP,PSP_13,MADRC,76,Male,16,,PSP,
+PSP,PSP_14,MADRC,63,Female,5,I,PSP,
+PSP,PSP_15,HBSFRC,85,Female,13.5,,PSP,
+PSP,PSP_16,HBSFRC,84,Male,20.4,,PSP,
+PSP,PSP_17,HBSFRC,67,Male,7,,PSP,
+PSP,PSP_18,HBSFRC,69,Female,13.8,,PSP,
+PSP,PSP_19,HBTRC,78,Male,20.58,,PSP,Arteriolosclerosis
+PSP,PSP_20,HBTRC,80,Male,11.45,,PSP,Electrode
+PSP,PSP_21,Mayo,76,Female,,II,PSP,
+PSP,PSP_22,Mayo,62,Female,7,OI,PSP,
+PSP,PSP_23,Mayo,73,Male,5,I,PSP,
+PSP,PSP_24,Mayo,66,Female,,II,PSP,
+PSP,PSP_25,Mayo,82,Male,9,II,PSP,
+PSP,PSP_26,Mayo,59,Male,3,II,PSP,
+PSP,PSP_27,Mayo,60,Male,,I,PSP,
+PSP,PSP_28,Mayo,59,Male,,II,PSP,
+PSP,PSP_29,Mayo,67,Male,,OI,PSP,
+PSP,PSP_30,Mayo,70,Female,,I,PSP,
+PSP,PSP_31,Mayo,67,Female,,I,PSP,
+PSP,PSP_32,Mayo,64,Male,,I,PSP,
+PSP,PSP_33,Mayo,73,Female,,I,PSP,
+PSP,PSP_34,Mayo,65,Male,,I,PSP,
+PSP,PSP_35,Mayo,67,Female,,II,PSP,
+PSP,PSP_36,MADRC,71,Female,7,,PSP,Cerebrovascular Disease
+PSP,PSP_37,MADRC,69,Male,20,O,PSP,Hippocampal Sclerosis
+PSP,PSP_38,MADRC,89,Female,9,O,PSP,Cerebrovascular Disease
+PSP,PSP_39,MADRC,81,Female,10,O,PSP,Hippocampal Sclerosis with TDP43
+PSP,PSP_40,MADRC,76,Male,4,,PSP,

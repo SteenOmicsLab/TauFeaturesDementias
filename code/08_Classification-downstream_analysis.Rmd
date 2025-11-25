@@ -1,0 +1,393 @@
+---
+title: "Combine individual cleavage site occurances for consecutive cleavages into region frequencies"
+author: "Shaojun Tang"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r setup, include=FALSE}
+
+###################################################
+# step 2, prepare labels, colors and output folders
+###################################################
+
+{
+  
+  x <- tau.ptm.newdata[, 3:ncol(tau.ptm.newdata)]
+  y <- tau.ptm.newdata[, 2]
+  
+  use.two.category=TRUE
+  model.training.accuracy=c()
+  
+  # Assign coulour
+  {
+    y.col=y
+    #new.col=c(rep("red", length(which(y.col=="AD"))),rep("blue", length(which(y.col=="PSP"))), rep("orange", length(which(y.col=="PiD"))), rep("green", length(which(y.col=="ctrl"))), rep("purple", length(which(y.col=="CBD"))), rep("purple", length(which(y.col=="AGD")))) 
+    #new.col=c(rep("red", length(which(y.col=="AD"))),rep("blue", length(which(y.col=="PSP"))), rep("orange", length(which(y.col=="PiD"))), rep("green", length(which(y.col=="ctrl"))), rep("purple", length(which(y.col=="CBD")))) 
+    new.col=rep("",length(y))
+    new.col[which(y=="AD")]  ="red"
+    new.col[which(y=="CBD")] ="blue"
+    new.col[which(y=="CTR")] ="orange"
+    new.col[which(y=="PiD")] ="green"
+    new.col[which(y=="PSP")] ="purple"
+    new.col[which(y=="CTE")] ="black"
+    new.col[which(y=="DLB")] ="yellow"
+  }
+  
+  
+  
+  if (!file.exists(file.path(default.parent.folder, figures.folder.name))){dir.create(file.path(default.parent.folder, figures.folder.name))}
+  
+}
+
+
+
+
+# ############ ############## ############ #############
+# [3] formal analysis
+# ############ ############## ############ #############
+
+this.disease.rf.model.list=list();ij=1  # complete model information
+this.predicted.class.df = data.frame()  # prediction
+variable.important.per.disease.model = matrix(0, ncol(x), 6*length(unique(tau.ptm.newdata[,2]))) ;  disease.model.concatenated.names=c() ; ik=1
+
+
+pdf(paste0(default.parent.folder, figures.folder.name,"/", REF.file.name, ".pdf"), width=16, height=9)
+sink(paste0(default.parent.folder, figures.folder.name,"/",  REF.file.name, ".txt"))
+for(this.disease in unique(tau.ptm.newdata[,2])){
+  
+  x = tau.ptm.newdata[, 3:ncol(tau.ptm.newdata)]
+  y = tau.ptm.newdata[,2]
+  
+  # split the randomized non-AD into equal chunk of length(AD)
+  portion.num=1
+  large.group.split.index=list()
+  if(use.two.category==TRUE){
+    large.group.random.index=sample(which(y!=this.disease), length(which(y!=this.disease)))
+    portion.num=floor(length(which(y!=this.disease))/length(which(y==this.disease)))
+    large.group.split.index=split(large.group.random.index, 1:portion.num)
+  }else{
+    large.group.split.index=list(which(y==this.disease))
+  }
+  
+  rf.predictors=list()	
+  # just pick 1 portion? 
+  portion.num=1
+  for(p in 1:portion.num){
+    
+    x.this=x[c(which(y==this.disease), large.group.split.index[[p]]),]
+    y.this=y[c(which(y==this.disease), large.group.split.index[[p]])]
+    
+    #redefine the category
+    y.this[which(y.this!=this.disease)]= 2
+    y.this[which(y.this==this.disease)]= 1
+    y.this = factor(as.numeric(y.this))
+    
+    # remove column with unique values
+    col.with.uniq.vals = which(unlist(lapply(1:ncol(x.this), function(n){length(unique(x.this[,n]))}))==1)
+    x.p=x.this
+    if(length(col.with.uniq.vals)>0){
+      x.p=x.this[, -col.with.uniq.vals]
+    }
+    y.p=y.this
+    
+    # assign variables
+    Class = y.p
+    trainData = x.p
+    # write the data into table
+    write.csv(cbind(y.p, x.p), paste0(default.parent.folder, figures.folder.name,"/",  
+                                      REF.file.name, "_", this.disease, "_Sampled_DataMatrix.txt"))
+    
+    candidate.features = list(
+      get.optVariables.by.glmnet.lasso(Class, trainData),
+      get.optVariables.by.caret.rf(Class, trainData),
+      get.optVariables.by.Boruta(Class, trainData)
+    )
+    
+    
+    
+    ### added code 10072021, write all peptide variable importance from random forest
+    {
+      mtry <- tuneRF(trainData, Class, ntreeTry=20,
+                     stepFactor=1.5,improve=0.01, trace=TRUE, plot=TRUE)
+      #best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]           # disable and change on 09/25/2025
+      best.m <- mtry[which(mtry[, 2] == min(mtry[, 2]))[1], 1]  # make sure we only take the first row, otherwise, if there is a tie, it will be a vector
+      print(mtry)
+      print(best.m)
+      set.seed(100)
+      rf <-randomForest(y.p~.,data=trainData, mtry=best.m, importance=TRUE,ntree=20)
+      save(rf, file=paste0(default.parent.folder, figures.folder.name,"/",  
+                           REF.file.name, "_", this.disease, "_Random_Forest_Model.RData"))
+      print(rf)
+      #Evaluate variable importance
+      importance=data.frame(importance(rf))
+      print(varImpPlot(rf, main = "Random Forest Model Importance"))
+      # write the important variables by order
+      var.importance.matrix=data.frame(varImpPlot(rf))
+      var.importance.matrix$varName=rownames(var.importance.matrix)
+      var.importance.matrix.ordered=cbind(var.importance.matrix[order(var.importance.matrix[,1], decreasing=T),],
+                                          var.importance.matrix[order(var.importance.matrix[,2], decreasing=T),])
+      rownames(var.importance.matrix.ordered)=1:nrow(var.importance.matrix.ordered)
+      write.csv(var.importance.matrix.ordered, paste0(default.parent.folder, figures.folder.name,"/", REF.file.name, "_RandomForest_Var_Importance_Matrix.csv"))
+      
+      # [1] MeanDecreaseAccuracy ; write all FLEXITau variable important to figures
+      disease.model.concatenated.names=c(disease.model.concatenated.names, paste0(this.disease, "_MeanDecreaseAccuracy "))
+      match.idx = match(rownames(importance), colnames(x))
+      variable.important.per.disease.model[match.idx, ik]=importance$MeanDecreaseAccuracy;ik=ik+1
+      # [1] MeanDecreaseGini ; write all FLEXITau variable important to figures
+      disease.model.concatenated.names=c(disease.model.concatenated.names, paste0(this.disease, "_MeanDecreaseGini "))
+      match.idx = match(rownames(importance), colnames(x))
+      variable.important.per.disease.model[match.idx, ik]=importance$MeanDecreaseGini;ik=ik+1
+      
+    }
+    
+    rfe.model.names=c("Lasso", "RandomForest", "Boruta")
+    for(jth.test in 1:length(candidate.features)){
+      this.model = NULL
+      if(length(candidate.features[[jth.test]])>1){   # need at least two varibles, modified on 05/13/2024, otherwise, 1 var can't do RF
+        chosen.features = candidate.features[[jth.test]]
+        # then predict the accuracy with trained ids
+        f <- as.formula(paste("y.p ~", paste(chosen.features, collapse = " + ")))
+        if(length(chosen.features)==1){
+          x.p.pids = data.frame(x.p[,chosen.features])
+          colnames(x.p.pids)=chosen.features
+        }else{
+          x.p.pids = x.p[,chosen.features]
+        }
+        
+        # [1] random forest
+        set.seed(71)
+        rfmodel<-randomForest(f, data = x.p.pids, ntree = 20, norm.votes = FALSE, replace=FALSE)
+        
+        
+        # plot variable importance for each selected variables and save variable importance
+        {
+          importance <- varImp(rfmodel, scale=FALSE)
+          # variable importance v2
+          importance(rfmodel)
+          varImpPlot(rfmodel)
+          # write variable important to figures
+          disease.model.concatenated.names=c(disease.model.concatenated.names, paste0(this.disease, "_", rfe.model.names[jth.test]))
+          match.idx = match(rownames(importance), colnames(x))
+          variable.important.per.disease.model[match.idx, ik]=importance$Overall;ik=ik+1
+        }
+        
+        # save model on file, test model on held-back fAD or TauPTM rows
+        {
+          this.model.name = paste0(this.disease,".", rfe.model.names[jth.test], ".RF.model")
+          assign(this.model.name, rfmodel)
+          this.model = get(this.model.name)
+          # test model on remaining data
+          rf.pred <- predict(rfmodel, tau.ptm.newdata.testset)  # be extremely careful, the testset if missing some training variables, it will fail
+          rf.pred.class = rep(this.disease, length(rf.pred))
+          rf.pred.class[which(rf.pred==2)]=paste0("NOT-", this.disease)
+          if(nrow(this.predicted.class.df)==0){
+            this.predicted.class.df=cbind(rf.pred.class)
+          }else{
+            this.predicted.class.df=cbind(this.predicted.class.df, rf.pred.class)
+          }
+        }
+        
+        
+        {
+          rf.roc<-roc(rfmodel$y,rfmodel$votes[,2])
+          title.main = paste(this.disease,  
+                             ":model=", rfe.model.names[jth.test], 
+                             ":AUC=",round(auc(rf.roc),2), sep="")
+          plot(rf.roc, main=title.main)
+          auc(rf.roc)
+        }
+        
+        
+        {
+          model.training.accuracy = rbind(model.training.accuracy, c(this.disease, 
+                                                                     p, jth.test, 
+                                                                     round(auc(rf.roc),2), 
+                                                                     paste(chosen.features, collapse=" ")))
+          sink.message = paste("\n[", this.disease, ":Model=", rfe.model.names[jth.test], ":AUC=", round(auc(rf.roc),2), "]\n", 
+                               paste0(chosen.features, collapse="\n"),
+                               "\n")
+          cat(sink.message)
+        }
+      }
+      print(this.disease)
+      this.disease.rf.model.list[[ij]] = this.model ; ij=ij+1 # even null, still write to file
+      
+    }
+    
+    ## plot the ROC curve by Lasso 
+    if(TRUE){
+      lambdas <- 10^seq(2, -3, by = -.1)
+      cv.lasso <- cv.glmnet(as.matrix(trainData), as.numeric(as.matrix(Class)), family='binomial', alpha=1, parallel=TRUE, 
+                            standardize=FALSE, type.measure='auc', nfolds = 5)
+      lambda_best <- cv.lasso$lambda.min 
+      lasso_model <- glmnet(as.matrix(trainData), as.numeric(as.matrix(Class)), alpha=1, family="binomial", 
+                            lambda = lambda_best)
+      # Plot variable coefficients vs. shrinkage parameter lambda.
+      plot(lasso_model, xvar="lambda")
+      predictions_train <- predict(lasso_model, s = lambda_best, newx = as.matrix(trainData))
+      rf.roc<-roc(as.numeric(as.matrix(Class)), predictions_train)
+      plot(rf.roc)
+      #eval_results(as.numeric(as.matrix(Class)), predictions_train, train)
+    }
+    
+    
+    ## plot the variable important plot, by xgboost function
+    {
+      set.seed(102)
+      library(xgboost)
+      bst <- xgboost(
+        data = data.matrix(trainData),
+        label = Class, 
+        objective = "reg:linear",
+        nrounds = 100, 
+        max_depth = 5, 
+        eta = 0.3,
+        verbose = 0  # suppress printing
+      )
+      vi_bst <- xgb.importance(model = bst)
+      plot(vi_bst)
+      library(Ckmeans.1d.dp)
+      this.importance = xgb.importance(model=bst)
+      p<-xgb.ggplot.importance(vi_bst)+ggplot2::ylab("xgboost model importance")+ggplot2::ggtitle("xgBoost Model Feature Importance Plot")
+      print(p)
+      
+      # write variable important to figures
+      disease.model.concatenated.names=c(disease.model.concatenated.names, paste0(this.disease, "_xgboost"))
+      match.idx = match(this.importance$Feature, colnames(x))
+      variable.important.per.disease.model[match.idx, ik]=this.importance$Gain;ik=ik+1
+      
+    }
+    
+  }
+}
+dev.off()
+sink()
+variable.important.per.disease.model=data.frame(variable.important.per.disease.model)
+rownames(variable.important.per.disease.model)=colnames(x)
+colnames(variable.important.per.disease.model)=disease.model.concatenated.names
+
+
+write.csv(variable.important.per.disease.model, file.path(default.parent.folder, figures.folder.name,"variable.important.per.disease.model.csv"))
+
+
+
+
+
+# ############ ############## ############ ############# #############
+# [step 2] - random forest - balanced out data
+# post-hoc analysis, [1] predict held back data [2] plot ROC curves
+# write the variable importance matrix
+# ############ ############## ############ ############# #############
+
+# determine the test set label by voting
+{
+  predicted.class.from.testset <- c()
+  predicted.class.from.testset.matrix<-matrix(0, nrow(this.predicted.class.df), length(unique(tau.ptm.newdata$Neuropathology)))
+  predicted.class.from.testset.matrix<-data.frame(predicted.class.from.testset.matrix)
+  colnames(predicted.class.from.testset.matrix)=unique(tau.ptm.newdata[,2])
+  for(j in 1:nrow(this.predicted.class.df)){
+    predicted.class.this.row = this.predicted.class.df[j,]
+    predicted.class.this.row = predicted.class.this.row[!grepl("NOT", predicted.class.this.row)]
+    this.predicted.class = names(which.max(table(predicted.class.this.row)))
+    predicted.class.from.testset = c(predicted.class.from.testset, this.predicted.class)
+    predicted.class.from.testset.matrix[j, names(table(predicted.class.this.row))] = as.numeric(table(predicted.class.this.row))
+  }
+  # form predicted vs original test pairs
+  tau.ptm.heldback.testset.classification.df = cbind(tau.ptm.newdata.testset$Neuropathology, predicted.class.from.testset)
+  colnames(tau.ptm.heldback.testset.classification.df)= c("Neuropathology", "Prediction")
+  write.csv(cbind(predicted.class.from.testset.matrix, tau.ptm.heldback.testset.classification.df),
+            paste0(default.parent.folder, figures.folder.name,"/", REF.file.name, "_HeldBack_test.csv"))
+}
+
+
+## ROC curve, 7 diseases per plot  x 3 methods
+## save rf.roc for plotting in a separate function
+pdf(paste0(default.parent.folder, figures.folder.name,"/", REF.file.name, "_ROC_7_tauopathies.pdf"), width=16, height=9)
+par(mfrow=c(2,2))
+{
+  jth.test = 2 # use lasso by default
+  for(jth.test in 1:3){
+    # only get LASSO model
+    the.lasso.rf.model = this.disease.rf.model.list[seq(from=jth.test, to=length(unique(tau.ptm.newdata[,2]))*3, by=3)]   # this variable is never used
+    jth.plot = 1
+    library(randomcoloR)
+    n <- length(unique(tau.ptm.newdata[,2]))
+    palette <- distinctColorPalette(n)
+    disease.color.7.categories = palette = distinctColorPalette(n) # c("red", "blue", "orange", "green", "purple", "black", "yellow")
+    roc.areas = c()
+    for(this.disease in unique(tau.ptm.newdata[,2])){ # default is 7 diseases, but what if I have 6 disease
+      this.model.name=paste0(this.disease,".", rfe.model.names[jth.test], ".RF.model")
+      if(exists(this.model.name)){  # added on Nov 11, 2025
+        rfmodel=get(this.model.name)
+        rf.roc<-roc(rfmodel$y,rfmodel$votes[,2])
+        rf.roc<-roc(rfmodel$y,as.numeric(as.character(rfmodel$predicted)))
+        roc.areas = c(roc.areas, auc(rf.roc))
+        if(jth.plot==1){
+          plot(rf.roc, col=disease.color.7.categories[jth.plot])
+        }else{
+          lines(rf.roc,col=disease.color.7.categories[jth.plot])
+        }
+      }
+      jth.plot = jth.plot+1
+    }
+    if(!is.null(roc.areas)){
+      legend(x = "bottomright",
+             legend=paste(unique(tau.ptm.newdata$Neuropathology), round(roc.areas, 2), sep = " "),
+             col=disease.color.7.categories,  cex=1.2, lty="solid", seg.len=1.5, lwd=2,
+             title="Line types", text.font=4, bg='white')
+    }
+  }
+}
+dev.off()
+
+
+
+# write the variable (Feature) importance to file, modify on 05/13/2024, because some variable importances missing, order will be wrong
+# chosen.variable.important.matrix = variable.important.per.disease.model[, c(seq(from=1, to=6*length(unique(tau.ptm.newdata$Neuropathology)), by=6), seq(from=2, to=6*length(unique(tau.ptm.newdata$Neuropathology)), by=6))]
+chosen.variable.important.matrix = variable.important.per.disease.model[, grep("Mean", colnames(variable.important.per.disease.model))]
+write.csv(chosen.variable.important.matrix, paste0(default.parent.folder, figures.folder.name,"/", REF.file.name, "_variable_importance_matrix.csv"))
+
+
+# visualize the variable importance in heatmap
+{
+  pdf(paste0(default.parent.folder, figures.folder.name,"/", REF.file.name, "_heatmap_barplot.pdf"), width=16, height=9)
+  valid.idx=c()
+  for(ijk in 1:nrow(chosen.variable.important.matrix)){
+    vals = chosen.variable.important.matrix[ijk,]
+    if(length(which(vals==0))<5 & length(which(abs(vals)>1))>3){
+      valid.idx = c(valid.idx, ijk)
+    }
+  }
+  if(length(valid.idx)>1){
+    tmp.heatmap = data.matrix(chosen.variable.important.matrix[valid.idx,])
+    library(gplots)
+    p=heatmap.2(tmp.heatmap, col=bluered, trace = 'none', Colv = FALSE, 
+                cexRow = 0.35, cexCol = 0.95, margin=c(14,14))
+    print(p)
+    
+    # more visualization on individual variables by group # stacked barplot by frequency
+    for(jk in 1:nrow(tmp.heatmap)){
+      library(dplyr)
+      this.feature = rownames(tmp.heatmap)[jk]
+      data = data.frame(y.p, x.p[,this.feature])
+      colnames(data)=c('disease', 'binary.feature.val')
+      res <- data %>% group_by(disease,binary.feature.val) %>% summarise(Freq=n())
+      p<-ggplot(res, aes(fill=binary.feature.val, y=Freq, x=disease)) + 
+        ggtitle(this.feature)+
+        geom_bar(position="fill", stat="identity")+
+        theme(  plot.title = element_text(color = "red", size = 20, face = "bold", hjust = 0.5),
+                axis.text.x = element_text(color = "grey20", size = 20, angle = 90, hjust = .5, vjust = .5, face = "plain"),
+                axis.text.y = element_text(color = "grey20", size = 20, angle = 0, hjust = 1, vjust = 0, face = "plain"),  
+                axis.title.x = element_text(color = "grey20", size = 20, angle = 0, hjust = .5, vjust = 0, face = "plain"),
+                axis.title.y = element_text(color = "grey20", size = 20, angle = 90, hjust = .5, vjust = .5, face = "plain"))
+      print(p)
+    }
+    
+  }
+  dev.off()
+  
+}
+```
+
+

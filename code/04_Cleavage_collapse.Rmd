@@ -7,6 +7,8 @@ output:
 ---
 ```{r setup, include=FALSE}
 options(stringsAsFactors=FALSE)
+library(stringr)
+library(R.utils)
 
 substitueSeparators <- function(x) {
   str_replace_all(str_replace_all(str_replace_all(str_replace_all(x,"@","."),"\\(","."),"\\)","."),"; ","..")
@@ -31,11 +33,11 @@ splitCleavages <- function(x) {
 ```{r setup, include=FALSE}
 # Input: Cleavage matrix with unique individual sites from 'CombineProteinPilotPhosphoAcetylOutput.Rmd'
 #        and manually created lookup table for individual sites mapping to consecutive cleavage regions
-Cleavagefile <- "./PP_INSOL_reformat_combine_C.csv"
-translationfile <- "./PP_INSOL_reduced_combine_C_translationtable.csv"
+Cleavagefile <- "PP_INSOL_reformat_combine_C.csv"
+translationfile <- "PP_INSOL_reformat_combine_C_translationtable.csv"
 
 # Output: File with individual cleavage sites with patient frequencies collapsed into cleavage regions
-collmeanfile <- "./PP_INSOL_reformat_combine_C_collmean.csv"
+collmeanfile <- "PP_INSOL_reformat_combine_C_collmean2.csv"
 ```
 
 ```{r setup, include=FALSE}
@@ -91,6 +93,12 @@ Cleavagedata2.mean$start <- NULL
 Cleavagedata2.mean$end <- NULL
 
 Cleavagedata2.mean <- cbind(isoformcounts,as.data.frame(t(Cleavagedata2.mean)))
+
+Cleavagedata2.mean[startsWith(Cleavagedata2.mean[,1],"NPCAD"),2] <- "AD"
+Cleavagedata2.mean[startsWith(Cleavagedata2.mean[,1],"FTLDTau_Insol_01"),2] <- "AD"
+Cleavagedata2.mean[startsWith(Cleavagedata2.mean[,1],"FTLDTau_Insol_02"),2] <- "CBD"
+Cleavagedata2.mean[startsWith(Cleavagedata2.mean[,1],"FTLDTau_Insol_03"),2] <- "PSP"
+Cleavagedata2.mean[startsWith(Cleavagedata2.mean[,1],"CAA"),2] <- "AD"
 
 # write out output
 write.table(Cleavagedata2.mean,collmeanfile,quote=FALSE,na="",row.names=FALSE,col.names=FALSE,sep=",")

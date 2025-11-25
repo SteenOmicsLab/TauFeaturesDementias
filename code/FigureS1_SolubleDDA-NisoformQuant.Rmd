@@ -1,0 +1,73 @@
+---
+title: "Figure S1 PanelA Comparison of N-isoforms in Soluble fraction"
+author: "Christoph N. Schlaffner"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r, include=FALSE}
+
+options(stringsAsFactors = FALSE)
+library(reshape2)
+library(ggplot2)
+library(scales)
+library(ggpubr)
+library(gridExtra)
+library(ggh4x)
+
+linesize <- 0.8
+
+anno_colors <- list(Isoform=c(N0="#BEBADA",N1="#FDB462",N2="#F781BF",R3="#66C2A5",R4="#80B1D3","#FFFFFF"),
+                    NPDX1=c(fAD="#9C0B0C",AD="#E41A1C",CBD="#FFD92F",CTE="#1740B6",CTR="#4DAF4A",DLB="#8DD3C7",PiD="#984EA3",PSP="#FF7F00","#FFFFFF"),
+                    NPDX2=c(fAD="#9C0B0C",AD="#E41A1C",CBD="#FFD92F",CTE="#1740B6",CTR="#4DAF4A",DLB="#8DD3C7",PiD="#984EA3",PSP="#FF7F00","#FFFFFF")
+)
+testmethod <- "t.test"
+pvaluecorrection <- "fdr"
+p.label <- "p={p.adj}"
+pvalsize.pval <- 6
+astersize <- 6
+pvalsize <- pvalsize.pval
+
+titlesize <- 20
+axistitlesize <- 16
+axistextsize <- 16
+
+logticks_left <- annotation_logticks(sides='l',short=unit(0.15,"cm"),mid=unit(0.15,"cm"),long=unit(0.25,"cm"),linewidth=linesize)
+logticks_left$data <- data.frame(x=NA, Neuropathology=factor("CTR",levels=c("CTR","DLB","PSP","PiD","FTLD","CBD","CTE","fAD","AD")))
+logticks_right <- annotation_logticks(sides='r',short=unit(0.15,"cm"),mid=unit(0.15,"cm"),long=unit(0.25,"cm"),linewidth=linesize)
+logticks_right$data <- data.frame(x=NA, Neuropathology=factor("AD",levels=c("CTR","DLB","PSP","PiD","FTLD","CBD","CTE","fAD","AD")))
+
+outfilename <- "FigureS1PanelA.pdf"
+file_012Nsol <- "MSFragger_SOL_agg_NIso_reformat.csv"
+data_012Nsol <- read.table(file_012Nsol,sep=",",header=TRUE)
+
+data_012Nsol <- data_012Nsol[complete.cases(data_012Nsol),]
+colnames(data_012Nsol) <- c("ID","Neuropathology","N0","N1","N2")
+
+data_012Nsol <- melt(data_012Nsol)
+data_012Nsol$Neuropathology <- factor(data_012Nsol$Neuropathology,levels=c("CTR","DLB","PSP","PiD","CBD","CTE","fAD","AD"))
+data_012Nsol$Isoform <- rep("2N",dim(data_012Nsol)[1])
+data_012Nsol[data_012Nsol$variable=="N1",]$Isoform <- "1N"
+data_012Nsol[data_012Nsol$variable=="N0",]$Isoform <- "0N"
+data_012Nsol$variable <- NULL
+data_012Nsol$Isoform <- factor(data_012Nsol$Isoform,levels=c("2N","1N","0N"))
+
+Nisoform_insoluble_ttest2 <- compare_means(value~Isoform,data=data_012Nsol,group.by=c("Neuropathology"),method=testmethod,p.adjust.method=pvaluecorrection)
+
+logheights.Nsol <- c(0.5,0.575,0.5,0.575,0.5,0.65,0.575,0.5,0.575,0.5,0.575,0.725,0.875,0.8,0.5,0.575,0.5,0.575)
+ylabel.N <- "normalized isoform intensity"
+heights.Nsol <- logheights.Nsol
+
+plot_N_insolublesol <- ggplot(data_012Nsol,aes(x=Isoform,y=value)) + 
+  stat_boxplot(geom="errorbar",width=linesize) +
+  geom_boxplot(aes(fill=Neuropathology),lwd=linesize) +
+  facet_wrap2(~Neuropathology,ncol=11,strip.position="bottom",axes="all",remove_labels="y") +
+  ggtitle("Soluble DDA\n(FLEXITau isoform peptides)\n2N, 1N, 0N (exon 2-3 splicing)") +
+  scale_fill_manual(values=anno_colors$NPDX1) +
+  scale_y_continuous(sec.axis = dup_axis(label=NULL,name=""),limits=c(0.0,0.9),name=ylabel.N) +
+  stat_pvalue_manual(Nisoform_insoluble_ttest2,label=p.label,y.position=heights.Nsol,hide.ns=TRUE,tip.length=0,bracket.size=linesize,label.size=pvalsize) +
+  theme_minimal() +
+  theme(plot.title=element_text(hjust=0.5,size=titlesize,face="bold"),axis.line=element_line(linewidth=linesize),strip.placement="outside",panel.spacing=unit(0,"mm"),strip.text=element_text(size=axistextsize,face="bold"),title=element_text(size=titlesize,face="bold"),axis.ticks=element_line(linewidth=linesize+0.1),axis.title.x=element_blank(),axis.text=element_text(size=axistextsize,face="bold",color="black"),axis.text.x=element_text(angle=90,hjust=1,vjust=0.5),axis.title.y=element_text(size=axistitlesize,face="bold"),legend.position="none")
+
+ggsave(outfilename,plot_N_insolublesol,device="pdf",width=8.32,height=2.56,units="in",scale=2)
+```

@@ -1,0 +1,77 @@
+---
+title: "Classification - utility function"
+author: "Shaojun Tang"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r setup, include=FALSE}
+library(ROCR)
+library(pROC)
+library(randomForest)
+library(Boruta)
+library(caret)
+library(glmnet)
+library(e1071)
+library(mlbench)
+library(reshape2)
+library(RColorBrewer)
+library(magrittr)
+library(dplyr)
+
+# ############ ############## ############ #############
+# utility function
+# ############ ############## ############ #############
+
+get.optVariables.by.glmnet.lasso <-function(Class, trainData){
+  x <- as.matrix(trainData) # all X vars
+  y <- as.numeric(as.matrix(Class)) # Only Class
+  # Fit the LASSO model (Lasso: Alpha = 1)
+  set.seed(100)
+  cv.lasso <- cv.glmnet(x, y, family='binomial', alpha=1, parallel=TRUE, standardize=FALSE, type.measure='auc', nfolds = 5)
+  # Results
+  plot(cv.lasso)
+  # plot(cv.lasso$glmnet.fit, xvar="lambda", label=TRUE)
+  # cat('Min Lambda: ', cv.lasso$lambda.min, '\n 1Sd Lambda: ', cv.lasso$lambda.1se)
+  df_coef <- round(as.matrix(coef(cv.lasso, s=cv.lasso$lambda.min)), 2)
+  # See all contributing variables
+  df_coef[df_coef[, 1] != 0, ]
+  best.features = setdiff(names(df_coef[df_coef[, 1] != 0, ]), '(Intercept)')
+  return(best.features)
+}
+
+
+get.optVariables.by.caret.rf <-function(Class, trainData){
+  max.var.num=20
+  subsets <- c(1:20)
+  ctrl <- rfeControl(functions = rfFuncs,
+                     method = "repeatedcv",
+                     repeats = 5,
+                     verbose = FALSE)
+  lmProfile <- rfe(x=trainData, y=Class,
+                   sizes = subsets,
+                   rfeControl = ctrl)
+  lmProfile
+  
+  if(length(lmProfile$optVariables)>max.var.num){
+    results.row.num = nrow(lmProfile$results)
+    the.best.var.num = which(lmProfile$results$Variables<max.var.num)
+    max.num=which(lmProfile$results$Accuracy[the.best.var.num]==max(lmProfile$results$Accuracy[the.best.var.num]))[1]
+    chosen.predictors=predictors(lmProfile)[1:max.num]
+  }else{
+    chosen.predictors=predictors(lmProfile)
+  }
+  
+  return(chosen.predictors)
+}
+
+
+get.optVariables.by.Boruta <-function(Class, trainData){
+  boruta_output <- Boruta(Class ~ ., data=trainData, doTrace=0)  
+  boruta_signif <- getSelectedAttributes(boruta_output, withTentative = TRUE)
+  print(boruta_signif) 
+  plot(boruta_output, cex.axis=.4, las=2, xlab="", main="Boruta Variable Importance")  
+  return(boruta_signif)
+}
+```
+

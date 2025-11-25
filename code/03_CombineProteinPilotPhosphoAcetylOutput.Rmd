@@ -13,15 +13,18 @@ library(reshape2)
 # Input: reformatted ProteinPilot output files combining individual ProteinPilot outputs across samples
 #        and different PTM search emphasis runs (from ReorganizeCombinedProteinPilotOutput.Rmd); 
 #        (*_reformat.csv for PTMs, *_reformat_C.csv for Cleavages)
-pinfile_ptm <- "./PP_phopsho_INSOL_reformat.csv"
-pinfile_c <- "./PP_phopsho_INSOL_reformat_C.csv"
+pinfile_ptm <- "PP_phopsho_INSOL_reformat.csv"
+pinfile_c <- "PP_phopsho_INSOL_reformat_C.csv"
+#pinfile_ptm <- "PP_phopsho_SOL_reformat.csv"
 
-ainfile_ptm <- "./PP_acetyl_INSOL_reformat.csv"
-ainfile_c <- "./PP_acetyl_INSOL_reformat_C.csv"
+ainfile_ptm <- "PP_acetyl_INSOL_reformat.csv"
+ainfile_c <- "PP_acetyl_INSOL_reformat_C.csv"
+#ainfile_ptm <- "PP_acetyl_SOL_reformat.csv"
 
 # Output: files merging different PTM search emphasis runs from ProteinPilot
-outfile_ptm <- "./PP_INSOL_reformat_combine.csv"
-outfile_c <- "./PP_INSOL_reformat_combine_C.csv"
+outfile_ptm <- "PP_INSOL_reformat_combine2.csv"
+outfile_c <- "PP_INSOL_reformat_combine_C2.csv"
+#outfile_ptm <- "PP_SOL_reformat_combine.csv"
 ```
 
 ```{r setup, include=FALSE}
@@ -91,12 +94,24 @@ indata_ptm <- indata_ptm[,c(n-1,n,1:(n-2))]
 indata_ptm[1,c(1,2)] <- c("","")
 indata_ptm[2,c(1,2)] <- c("","")
 
+indata_ptm[startsWith(indata_ptm[,2],"NPCAD"),2] <- "AD"
+indata_ptm[startsWith(indata_ptm[,2],"FTLDTau_Insol_01"),2] <- "AD"
+indata_ptm[startsWith(indata_ptm[,2],"FTLDTau_Insol_02"),2] <- "CBD"
+indata_ptm[startsWith(indata_ptm[,2],"FTLDTau_Insol_03"),2] <- "PSP"
+indata_ptm[startsWith(indata_ptm[,2],"CAA"),2] <- "AD"
+
 indata_c$sample <- rownames(indata_c)
 indata_c$np <- matrix(unlist(strsplit(indata_c$sample,"_")),ncol=3,byrow=TRUE)[,1]
 n <- dim(indata_c)[2]
 indata_c <- indata_c[,c(n-1,n,1:(n-2))]
 indata_c[1,c(1,2)] <- c("","")
 indata_c[2,c(1,2)] <- c("","")
+
+indata_c[startsWith(indata_c[,2],"NPCAD"),2] <- "AD"
+indata_c[startsWith(indata_c[,2],"FTLDTau_Insol_01"),2] <- "AD"
+indata_c[startsWith(indata_c[,2],"FTLDTau_Insol_02"),2] <- "CBD"
+indata_c[startsWith(indata_c[,2],"FTLDTau_Insol_03"),2] <- "PSP"
+indata_c[startsWith(indata_c[,2],"CAA"),2] <- "AD"
 
 # Write output files
 write.table(indata_ptm,outfile_ptm,row.names=FALSE,col.names=FALSE,sep=",")

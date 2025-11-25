@@ -1,0 +1,1520 @@
+---
+title: "Figure S5 Overview of n most important features across classifiers"
+author: "Christoph N. Schlaffner"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r, include=FALSE}
+options(stringsAsFactors = FALSE)
+library(ggplot2)
+library(R.utils)
+library(reshape2)
+library(circlize)
+library(gridExtra)
+library(ggpubr)
+library(stringr)
+
+substitueSeparators <- function(x) {
+  str_replace_all(str_replace_all(str_replace_all(str_replace_all(x,"@","."),"\\(","."),"\\)","."),"; ","..")
+}
+
+substitueSeparators2 <- function(x) {
+  str_replace_all(str_replace_all(str_replace_all(str_replace_all(str_replace_all(str_replace_all(x,"@","."),"\\(","."),"\\)","."),"; ",".."),"Non-tryptic","Nontryptic"),"\\-",".")
+}
+
+custommean <- function(x) {
+  x <- as.numeric(x)
+  mean(x)
+}
+
+custommean2 <- function(x) {
+  x <- as.numeric(x)
+  y <- mean(x,na.rm=TRUE)
+  if(is.nan(y)) {
+    y <- NA
+  }
+  y
+}
+
+splitPTMs <- function(x) {
+  x_split <- unlist(strsplit(x,"_"))
+  isoform <- x_split[length(x_split)]
+  x <- str_replace_all(x,paste("_",isoform,sep=""),"")
+  x <- substitueSeparators(x)
+  x_split <- strsplit(x,"\\.")
+  y <- unlist(x_split)[nchar(unlist(x_split))>=1|!is.na(as.numeric(unlist(x_split)))]
+  idxs <- (which(!is.na(as.numeric(y)))+1)
+  
+  y <- insert(y,idxs,values=rep(x,length(which(!is.na(as.numeric(y))))))
+  extseq <- seq(0,length(idxs)-1,by=1)
+  idxs <- idxs + extseq + 1
+  insert(y,idxs,values=rep(isoform,length(which(!is.na(as.numeric(y))))))
+}
+
+splitCleavages <- function(x) {
+  x_split <- unlist(strsplit(x,"_"))
+  isoform <- x_split[length(x_split)]
+  x <- str_replace_all(x,paste("_",isoform,sep=""),"")
+  x <- substitueSeparators2(x)
+  x_split <- strsplit(x,"\\.")
+  y <- unlist(x_split)[nchar(unlist(x_split))>=1|!is.na(as.numeric(unlist(x_split)))]
+  idxs <- (which(!is.na(as.numeric(y)))+1)
+  
+  y <- insert(y,idxs,values=rep(x,length(which(!is.na(as.numeric(y))))))
+  extseq <- seq(0,length(idxs)-1,by=1)
+  idxs <- idxs + extseq + 1
+  insert(y,idxs,values=rep(isoform,length(which(!is.na(as.numeric(y))))))
+}
+
+splitFLEXI <- function(x) {
+  x_split <- unlist(strsplit(x,"_"))
+  peptide <- x_split[length(x_split)]
+  x <- str_replace_all(x,paste("_",peptide,sep=""),"")
+  x <- substitueSeparators2(x)
+  x_split <- strsplit(x,"\\.")
+  y <- unlist(x_split)[nchar(unlist(x_split))>=1|!is.na(as.numeric(unlist(x_split)))]
+  idxs <- (which(!is.na(as.numeric(y)))+1)
+  y <- insert(y,idxs[length(idxs)],values=c(x))
+  if(length(idxs)==1) {
+    y <- insert(y,idxs[length(idxs)],values=y[idxs[length(idxs)]-1])
+  }
+  c(peptide,y[c(2,3)],paste(paste(y[1],y[2],y[3],sep="."),peptide,sep="_"),y[1])
+}
+
+splitFLEXI2 <- function(x) {
+  x_split <- unlist(strsplit(x,"_"))
+  peptide <- x_split[length(x_split)]
+  x <- str_replace_all(x,paste("_",peptide,sep=""),"")
+  x <- substitueSeparators2(x)
+  x_split <- strsplit(x,"\\.")
+  y <- unlist(x_split)[nchar(unlist(x_split))>=1|!is.na(as.numeric(unlist(x_split)))]
+  idxs <- (which(!is.na(as.numeric(y)))+1)
+  y <- insert(y,idxs[length(idxs)],values=c(x))
+  if(length(idxs)==1) {
+    y <- insert(y,idxs[length(idxs)],values=y[idxs[length(idxs)]-1])
+  }
+  c(peptide,y)
+}
+
+adjustheights <- function(df_tmp,d,s,direction) {
+  idxs1 <- df_tmp$V3
+  idxs1_1 <- c(1,idxs1[1:(length(idxs1)-1)])
+  
+  addition <- c()
+  if(length(idxs1)>0) {
+    for(i in 1:length(idxs1)) {
+      if(i==1) {
+        addition <- c(addition,0)
+      } else if(i==length(idxs1)) {
+        if(addition[length(addition)]!=0) {
+          addition <- c(addition,addition[length(addition)]+s)
+        } else {
+          addition <- c(addition,0)
+        }
+      } else {
+        if(idxs1[i]>idxs1[i-1]+d) {
+          addition <- c(addition,0)
+        } else {
+          addition <- c(addition,addition[length(addition)]+s)
+        }
+      }
+    }
+    df_tmp$V4 <- df_tmp$V4+(direction*addition)
+  }
+  df_tmp
+}
+
+adjustheights_all <- function(df_tmp,d,s,nophospho=FALSE) {
+  if(nophospho==TRUE) {
+    df_tmp2 <- df_tmp
+    df_tmp2 <- df_tmp2[order(df_tmp2$V3),]
+    df_tmp2 <- adjustheights(df_tmp2,d,s,-1)
+    df_tmp <- df_tmp2[order(df_tmp2$V3),]
+  } else {
+    df_tmp1 <- df_tmp[df_tmp$V1%in%c("Phospho"),]
+    df_tmp1 <- df_tmp1[order(df_tmp1$V3),]
+    df_tmp2 <- df_tmp[!(df_tmp$V1%in%c("Phospho")),]
+    df_tmp2 <- df_tmp2[order(df_tmp2$V3),]
+  
+    df_tmp1 <- adjustheights(df_tmp1,d,s,1)
+    df_tmp2 <- adjustheights(df_tmp2,d,s,-1)
+  
+    df_tmp <- rbind(df_tmp1,df_tmp2)
+    df_tmp <- df_tmp[order(df_tmp$V3),]
+  }
+  df_tmp
+}
+
+readjust_reverse <- function(df_tmp,s,min_v) {
+  fliplabel <- rep(1,dim(df_tmp)[1])
+  values <- df_tmp$V4 - min_v
+  valleys <- which(values==0.0)
+  if(length(valleys)>1) {
+    peaklengths <- c(valleys[2:length(valleys)],length(values)+1)-valleys
+  } else {
+    peaklengths <- c(length(values)+1)-valleys
+  }
+  peaklengths_idxs <- peaklengths>2
+  peaklengths <- peaklengths[peaklengths_idxs]
+  valleys <- valleys[peaklengths_idxs]
+  offset <- ceiling(peaklengths/2)
+  run <- peaklengths-ceiling(peaklengths/2)
+  if(length(valleys)>0) {
+    for(i in 1:length(valleys)) {
+      count <- run[i]
+      while(count>0) {
+        if(count!=run[i] || peaklengths[i]%%2!=0) {
+          df_tmp$V4[valleys[i]+offset[i]+(run[i]-count)] <- df_tmp$V4[valleys[i]+offset[i]+(run[i]-count)-1] - s
+          fliplabel[valleys[i]+offset[i]+(run[i]-count)] <- -1
+        }
+        count <- count - 1
+      }
+    }
+  }
+  df_tmp$V6 <- fliplabel
+  df_tmp
+}
+
+readjust_reverse_all <- function(df_tmp,s,min_v,nophospho=FALSE) {
+  if(nophospho==TRUE) {
+    df_tmp2 <- df_tmp
+    df_tmp2 <- df_tmp2[order(df_tmp2$V3),]
+    df_tmp2 <- readjust_reverse(df_tmp2,-1*s,-1*min_v)
+    df_tmp <- df_tmp2[order(df_tmp2$V3),]
+  } else {
+    df_tmp1 <- df_tmp[df_tmp$V1%in%c("Phospho"),]
+    df_tmp1 <- df_tmp1[order(df_tmp1$V3),]
+    df_tmp2 <- df_tmp[!(df_tmp$V1%in%c("Phospho")),]
+    df_tmp2 <- df_tmp2[order(df_tmp2$V3),]
+  
+    df_tmp1 <- readjust_reverse(df_tmp1,s,min_v)
+    df_tmp2 <- readjust_reverse(df_tmp2,-1*s,-1*min_v)
+  
+    df_tmp <- rbind(df_tmp1,df_tmp2)
+    df_tmp <- df_tmp[order(df_tmp$V3),]
+  }
+  df_tmp
+}
+
+createFigure1 <- function(infile,infileC,infileF,fileout,min_value,threshold,threshold2,inpfileP,inpfileC,inpfileF) {
+
+indata <- read.csv(infile,header=FALSE)
+indataC <- read.csv(infileC,header=FALSE)
+indataF <- read.csv(infileF,header=FALSE)
+
+if(any(indata$V2=="CTRL")) {
+  indata[indata$V2=="CTRL",]$V2 <- "CTR"
+}
+indata[indata$V2=="fAD",]$V2 <- "AD"
+indata[indata$V2=="DLB",]$V2 <- "CTR"
+if(any(indataC$V2=="CTRL")) {
+  indataC[indataC$V2=="CTRL",]$V2 <- "CTR"
+}
+indataC[indataC$V2=="fAD",]$V2 <- "AD"
+indataC[indataC$V2=="DLB",]$V2 <- "CTR"
+if(any(indataF$V2=="CTRL")) {
+  indataF[indataF$V2=="CTRL",]$V2 <- "CTR"
+}
+indataF[indataF$V2=="fAD",]$V2 <- "AD"
+indataF[indataF$V2=="DLB",]$V2 <- "CTR"
+
+indataF <- indataF[-c(2),]
+indataF[1,c(1,2,3,4)] <- c("","","TotalTau","Ratio")
+
+indata.dup <- indata[2,t(duplicated(t(indata[c(2),])))]
+indata.dup <- indata.dup[1,indata.dup[1,]!=""]
+indataC.dup <- indataC[2,t(duplicated(t(indataC[c(2),])))]
+indataC.dup <- indataC.dup[1,indataC.dup[1,]!=""]
+
+indata[c(1),indata[c(2),]%in%indata.dup[c(1),]] <- "2N4R"
+indataC[c(1),indataC[c(2),]%in%indataC.dup] <- "2N4R"
+
+indata <- cbind(indata[,c(1,2)],as.data.frame(t(aggregate(. ~ V1+V2,data=as.data.frame(t(indata[,-c(1,2)])),function(x){y <- as.numeric(x); y <- sum(y); if(y>0) {y<-1} else {y<-0}; y}))))
+indataC <- cbind(indataC[,c(1,2)],as.data.frame(t(aggregate(. ~ V1+V2,data=as.data.frame(t(indataC[,-c(1,2)])),function(x){y <- as.numeric(x); y <- mean(y); y}))))
+
+colnames(indata) <- paste("V",1:dim(indata)[2],sep="")
+colnames(indataC) <- paste("V",1:dim(indataC)[2],sep="")
+colnames(indataF) <- paste("V",1:dim(indataF)[2],sep="")
+
+indata <- indata[indata$V2!="FTLDTau",]
+indataC <- indataC[indataC$V2!="FTLDTau",]
+indataF <- indataF[indataF$V2!="FTLDTau",]
+
+columnnames <- colnames(as.matrix(indata[-c(1,2),-c(1,2)]))
+filterm <- matrix(as.numeric(as.matrix(indata[-c(1,2),-c(1,2)])),byrow=FALSE,ncol=length(columnnames))
+filtersums <- colSums(filterm)
+indata <- indata[,c(TRUE,TRUE,filtersums>=1)]
+
+columnnamesC <- colnames(as.matrix(indataC[-c(1,2),-c(1,2)]))
+filtermC <- matrix(as.numeric(as.matrix(indataC[-c(1,2),-c(1,2)])),byrow=FALSE,ncol=length(columnnamesC))
+filtersumsC <- colSums(filtermC)
+indataC <- indataC[,c(TRUE,TRUE,filtersumsC>=1)]
+
+columnnamesF <- colnames(as.matrix(indataF[-c(1,2),-c(1,2)]))
+filtermF <- matrix(as.numeric(as.matrix(indataF[-c(1,2),-c(1,2)])),byrow=FALSE,ncol=length(columnnamesF))
+filtersumsF <- colSums(filtermF,na.rm=TRUE)
+indataF <- indataF[,c(TRUE,TRUE,filtersumsF>0)]
+
+indata <- indata[,!((indata[2,]=="")&(indata[1,]!=""))]
+indataC <- indataC[,!((indataC[2,]=="")&(indataC[1,]!=""))]
+indataF <- indataF[,!((indataF[2,]=="")&(indataF[1,]!=""))]
+
+PTMsites <- indata[2,-c(1,2)]
+Isosites <- indata[1,-c(1,2)]
+PTMsites <- paste(PTMsites,Isosites,sep="_")
+
+Cleavagesites <- indataC[2,-c(1,2)]
+Isosites <- indataC[1,-c(1,2)]
+Cleavagesites <- paste(Cleavagesites,Isosites,sep="_")
+
+FLEXIsites <- indataF[2,-c(1,2)]
+
+
+df <- as.data.frame(matrix(unlist(lapply(PTMsites,splitPTMs)),ncol=5,byrow=TRUE))
+dfC <- as.data.frame(matrix(unlist(lapply(Cleavagesites,splitCleavages)),ncol=5,byrow=TRUE))
+dfF <- as.data.frame(matrix(unlist(lapply(FLEXIsites,splitFLEXI)),ncol=5,byrow=TRUE))
+
+df.full <- df
+df <- df[,c(1:3,5)]
+df$V6 <- paste(df$V2,df$V3,sep="")
+df$V0 <- paste(df$V1,"(",df$V2,")@",df$V3,sep="")
+df$V01 <- df$V0
+df$V3 <- as.numeric(df$V3)
+
+dfC.full <- dfC
+dfC <- dfC[,c(1:3,5)]
+dfC$V6 <- paste(dfC$V2,dfC$V3,sep="")
+dfC$V0 <- paste(dfC$V1,"(",dfC$V2,")@",dfC$V3,sep="")
+dfC$V01 <- dfC$V0
+dfC$V3 <- as.numeric(dfC$V3)
+
+dfF.full <- dfF
+dfF <- dfF[,c(1:3,5)]
+dfF$V6 <- paste(dfF$V2,"-",dfF$V3,sep="")
+dfF$V0 <- paste(dfF$V1,"@",dfF$V2,"-",dfF$V3,sep="")
+dfF$V01 <- dfF$V0
+dfF$V2 <- as.numeric(dfF$V2)
+dfF$V3 <- as.numeric(dfF$V3)
+
+originalcols <- data.frame(PTM=c("ID","Neuropathology",substitueSeparators(indata[2,-c(1,2)])),iso=c("ID","Neuropathology",substitueSeparators(indata[1,-c(1,2)])),idx=seq(1,dim(indata)[2],by=1))
+org <- c(1,2)
+maxlength <- dim(df.full)[1]
+for(i in 1:maxlength) {
+  tmp <- originalcols[which(originalcols$PTM==df.full$V4[i]),]
+  tmp <- tmp[tmp$iso==df.full$V5[i],]
+  org <- c(org,tmp$idx)
+}
+
+originalcols <- data.frame(Cleavage=c("ID","Neuropathology",substitueSeparators2(indataC[2,-c(1,2)])),iso=c("ID","Neuropathology",substitueSeparators2(indataC[1,-c(1,2)])),idx=seq(1,dim(indataC)[2],by=1))
+orgC <- c(1,2)
+maxlength <- dim(dfC.full)[1]
+for(i in 1:maxlength) {
+  tmp <- originalcols[which(originalcols$Cleavage==dfC.full$V4[i]),]
+  tmp <- tmp[tmp$iso==dfC.full$V5[i],]
+  orgC <- c(orgC,tmp$idx)
+}
+
+originalcols <- data.frame(FLEXI=c("ID","Neuropathology",substitueSeparators2(indataF[2,-c(1,2)])),iso=c("ID","Neuropathology",substitueSeparators2(indataF[1,-c(1,2)])),idx=seq(1,dim(indataF)[2],by=1))
+orgF <- c(1,2)
+maxlength <- dim(dfF.full)[1]
+for(i in 1:maxlength) {
+  tmp <- originalcols[which(originalcols$FLEXI==dfF.full$V4[i]),]
+  tmp <- tmp[tmp$iso==dfF.full$V1[i],]
+  orgF <- c(orgF,tmp$idx)
+}
+indata2 <- indata[,org]
+colnames(indata2) <- c("ID","Neuropathology",df$V01)
+indata.tmp <- as.data.frame(cbind(matrix(c("","","","","",""),ncol=2),t(df[,c("V1","V6","V5")])))
+colnames(indata.tmp) <- colnames(indata2)
+indata2 <- as.data.frame(t(rbind(indata.tmp,indata2)))
+indata2.head <- indata2[c(1,2),]
+indata2 <- indata2[-c(1,2),]
+
+indataC2 <- indataC[,orgC]
+colnames(indataC2) <- c("ID","Neuropathology",dfC$V01)
+indataC.tmp <- as.data.frame(cbind(matrix(c("","","","","",""),ncol=2),t(dfC[,c("V1","V6","V5")])))
+colnames(indataC.tmp) <- colnames(indataC2)
+indataC2 <- as.data.frame(t(rbind(indataC.tmp,indataC2)))
+indataC2.head <- indataC2[c(1,2),]
+indataC2 <- indataC2[-c(1,2),]
+
+indataF2 <- indataF[,orgF]
+colnames(indataF2) <- c("ID","Neuropathology",dfF$V01)
+indataF.tmp <- as.data.frame(cbind(matrix(c("","","","","",""),ncol=2),t(dfF[,c("V1","V6","V5")])))
+colnames(indataF.tmp) <- colnames(indataF2)
+indataF2 <- as.data.frame(t(rbind(indataF.tmp,indataF2)))
+indataF2.head <- indataF2[c(1,2),]
+indataF2 <- indataF2[-c(1,2),]
+
+indata2 <- indata2[,-c(3,4,5)]
+indata2.head <- indata2.head[,-c(3,4,5)]
+indata2 <- aggregate(. ~ V1+V6,data=indata2,max,na.rm=TRUE)
+df$V01 <- NULL
+df$V5 <- NULL
+df <- df[!duplicated(df),]
+
+indataC2 <- indataC2[,-c(3,4,5)]
+indataC2.head <- indataC2.head[,-c(3,4,5)]
+indataC2 <- aggregate(. ~ V1+V6,data=indataC2,custommean)
+dfC$V01 <- NULL
+dfC$V5 <- NULL
+dfC <- dfC[!duplicated(dfC),]
+
+indataF2 <- indataF2[,-c(3,4,5)]
+indataF2.head <- indataF2.head[,-c(3,4,5)]
+indataF2 <- aggregate(. ~ V1+V6,data=indataF2,na.action=na.pass,custommean2)
+dfF$V01 <- NULL
+dfF$V5 <- NULL
+dfF <- dfF[!duplicated(dfF),]
+
+indata2 <- merge(df,indata2,all=TRUE,by=c("V1","V6"))
+indata2$V3.x <- as.numeric(indata2$V3.x)
+indata2 <- indata2[order(indata2$V3.x,indata2$V1),]
+indata2$V2 <- NULL
+indata2$V3.x <- NULL
+rownames(indata2) <- indata2$V0
+indata2$V0 <- NULL
+colnames(indata2) <- colnames(indata2.head)
+indata2 <- as.data.frame(t(rbind(indata2.head,indata2)))
+
+indataC2 <- merge(dfC,indataC2,all=TRUE,by=c("V1","V6"))
+indataC2$V3.x <- as.numeric(indataC2$V3.x)
+indataC2 <- indataC2[order(indataC2$V3.x,indataC2$V1),]
+indataC2$V2 <- NULL
+indataC2$V3.x <- NULL
+rownames(indataC2) <- indataC2$V0
+indataC2$V0 <- NULL
+colnames(indataC2) <- colnames(indataC2.head)
+indataC2 <- as.data.frame(t(rbind(indataC2.head,indataC2)))
+
+indataF2 <- merge(dfF,indataF2,all=TRUE,by=c("V1","V6"))
+indataF2$V2 <- as.numeric(indataF2$V2)
+indataF2$V3 <- as.numeric(indataF2$V3)
+indataF2 <- indataF2[order(indataF2$V2,indataF2$V3),]
+indataF2$V2 <- NULL
+indataF2$V3 <- NULL
+rownames(indataF2) <- indataF2$V0
+indataF2$V0 <- NULL
+colnames(indataF2) <- colnames(indataF2.head)
+indataF2 <- as.data.frame(t(rbind(indataF2.head,indataF2)))
+
+### calculate fequency per disease group
+indata2.head <- indata2[c(1,2),]
+indata2.head$ID <- NULL
+indata2 <- indata2[-c(1,2),]
+rownames(indata2) <- indata2$ID
+indata2$ID <- NULL
+indata2[,-1] <- apply(indata2[,-1],2,function(x){as.numeric(x)})
+indata2 <- aggregate(.~Neuropathology,data=indata2,mean)
+indata2 <- as.data.frame(t(rbind(indata2.head,indata2)))
+indata2 <- merge(df,indata2,all=TRUE)
+colnames(indata2) <- c("modification","site","AA","seg.po",indata2[1,5:11])
+indata2 <- indata2[-1,]
+
+indataC2.head <- indataC2[c(1,2),]
+indataC2.head$ID <- NULL
+indataC2 <- indataC2[-c(1,2),]
+rownames(indataC2) <- indataC2$ID
+indataC2$ID <- NULL
+indataC2[,-1] <- apply(indataC2[,-1],2,function(x){as.numeric(x)})
+indataC2 <- aggregate(.~Neuropathology,data=indataC2,mean)
+indataC2 <- as.data.frame(t(rbind(indataC2.head,indataC2)))
+indataC2 <- merge(dfC,indataC2,all=TRUE)
+colnames(indataC2) <- c("modification","site","AA","seg.po",indataC2[1,5:11])
+indataC2 <- indataC2[-1,]
+
+indataF2.head <- indataF2[c(1,2),]
+indataF2.head$ID <- NULL
+indataF2 <- indataF2[-c(1,2),]
+rownames(indataF2) <- indataF2$ID
+indataF2$ID <- NULL
+indataF2[,-1] <- apply(indataF2[,-1],2,function(x){as.numeric(x)})
+indataF2 <- aggregate(.~Neuropathology,data=indataF2,na.action=na.pass,mean,na.rm=TRUE)
+indataF2 <- as.data.frame(t(rbind(indataF2.head,indataF2)))
+indataF2 <- merge(dfF,indataF2,all=TRUE)
+colnames(indataF2) <- c("modification","site","seg.po","seg.po.2",indataF2[1,5:11])
+indataF2 <- indataF2[-1,]
+
+
+indata2$AD <- as.numeric(indata2$AD)
+indata2$CBD <- as.numeric(indata2$CBD)
+indata2$CTR <- as.numeric(indata2$CTR)
+indata2$PiD <- as.numeric(indata2$PiD)
+indata2$PSP <- as.numeric(indata2$PSP)
+indata2$CTE <- as.numeric(indata2$CTE)
+
+indataC2$AD <- as.numeric(indataC2$AD)
+indataC2$CBD <- as.numeric(indataC2$CBD)
+indataC2$CTR <- as.numeric(indataC2$CTR)
+indataC2$PiD <- as.numeric(indataC2$PiD)
+indataC2$PSP <- as.numeric(indataC2$PSP)
+indataC2$CTE <- as.numeric(indataC2$CTE)
+
+indataF2$AD <- as.numeric(indataF2$AD)
+indataF2$CBD <- as.numeric(indataF2$CBD)
+indataF2$CTR <- as.numeric(indataF2$CTR)
+indataF2$PiD <- as.numeric(indataF2$PiD)
+indataF2$PSP <- as.numeric(indataF2$PSP)
+indataF2$CTE <- as.numeric(indataF2$CTE)
+
+indata2 <- indata2[,-c(5)]
+indataC2 <- indataC2[,-c(5)]
+indataF2 <- indataF2[,-c(5)]
+
+indata2 <- indata2[apply(indata2[,c(5:10)],1,sum)>0.0,]
+indata2$seg.po <- as.numeric(indata2$seg.po)
+
+indataC2 <- indataC2[apply(indataC2[,c(5:10)],1,sum)>0.0,]
+indataC2$seg.po <- as.numeric(indataC2$seg.po)
+
+indataF2 <- indataF2[apply(indataF2[,c(5:10)],1,sum,na.rm=TRUE)>0.0,]
+indataF2$seg.po <- as.numeric(indataF2$seg.po)
+indataF2$seg.po.2 <- as.numeric(indataF2$seg.po.2)
+
+seg.f <- data.frame(seg.name=c("N-term","N1","N2","Mid","PRR","R1","R2","R3","R4","C-term"),seg.Start=c(1,45,74,103,151,242,273,304,335,372),seg.End=c(44,73,102,150,241,272,303,334,371,441),the.v=c(NA),NO=c(NA))
+seg.name <- c("N-term","N1","N2","Mid","PRR","R1","R2","R3","R4","C-term")
+indata2$seg.name <- lapply(indata2$seg.po,function(x,mapping){ mapping$seg.name[which(x>= mapping$seg.Start)[which(x>=mapping$seg.Start)%in%which(x<=mapping$seg.End)]] },seg.f)
+indata2 <- indata2[,c("seg.name","AA","seg.po","CTR","PSP","PiD","CBD","CTE","AD","modification","site")]
+
+seg.f$seg.Start <- as.character(seg.f$seg.Start)
+seg.f$seg.End <- as.character(seg.f$seg.End)
+seg.annotation <- indata2[,c(1,2,10,11)]
+
+segC.f <- data.frame(seg.name=c("N-term","N1","N2","Mid","PRR","R1","R2","R3","R4","C-term"),seg.Start=c(1,45,74,103,151,242,273,304,335,372),seg.End=c(44,73,102,150,241,272,303,334,371,441),the.v=c(NA),NO=c(NA))
+segC.name <- c("N-term","N1","N2","Mid","PRR","R1","R2","R3","R4","C-term")
+indataC2$seg.name <- lapply(indataC2$seg.po,function(x,mapping){ mapping$seg.name[which(x>= mapping$seg.Start)[which(x>=mapping$seg.Start)%in%which(x<=mapping$seg.End)]] },segC.f)
+indataC2 <- indataC2[,c("seg.name","AA","seg.po","CTR","PSP","PiD","CBD","CTE","AD","modification","site")]
+segC.f$seg.Start <- as.character(segC.f$seg.Start)
+segC.f$seg.End <- as.character(segC.f$seg.End)
+segC.annotation <- indataC2[,c(1,2,10,11)]
+
+segF.f <- data.frame(seg.name=c("N-term","N1","N2","Mid","PRR","R1","R2","R3","R4","C-term"),seg.Start=c(1,45,74,103,151,242,273,304,335,372),seg.End=c(44,73,102,150,241,272,303,334,371,441),the.v=c(NA),NO=c(NA))
+segF.name <- c("N-term","N1","N2","Mid","PRR","R1","R2","R3","R4","C-term")
+indataF2$seg.name <- lapply(indataF2$seg.po,function(x,mapping){ mapping$seg.name[which(x>= mapping$seg.Start)[which(x>=mapping$seg.Start)%in%which(x<=mapping$seg.End)]] },segF.f)
+indataF2$seq.name.2 <- lapply(indataF2$seg.po.2,function(x,mapping){ mapping$seg.name[which(x>= mapping$seg.Start)[which(x>=mapping$seg.Start)%in%which(x<=mapping$seg.End)]] },segF.f)
+indataF2 <- indataF2[,c("seg.name","seg.po","seg.po.2","CTR","PSP","PiD","CBD","CTE","AD","modification","site")]
+segF.f$seg.Start <- as.character(segF.f$seg.Start)
+segF.f$seg.End <- as.character(segF.f$seg.End)
+segF.annotation <- indataF2[,c(1,2,3,10,11)]
+
+df <- indata2[,c("modification","AA","seg.po","site")]
+colnames(df) <- c("V1","V2","V3","V5")
+df <- df[order(df$V3),]
+df <- df[!duplicated(df),]
+df <- df[df$V1!="Oxidation",]
+df <- df[df$V1!="Deamidated",]
+df <- df[!(df$V1=="GG"&df$V2=="S"),]
+
+dfC <- indataC2[,c("modification","AA","seg.po","site")]
+colnames(dfC) <- c("V1","V2","V3","V5")
+dfC <- dfC[order(dfC$V3),]
+dfC <- dfC[!duplicated(dfC),]
+
+dfF <- indataF2[,c("modification","seg.po","seg.po.2","site")]
+colnames(dfF) <- c("V1","V2","V3","V5")
+dfF <- dfF[order(dfF$V3),]
+dfF <- dfF[!duplicated(dfF),]
+
+minval <- 0.13
+df$V4 <- rep(minval,dim(df)[1])
+df[!(df$V1%in%c("Phospho")),]$V4 <- -1*minval
+df$V3 <- as.numeric(df$V3)
+df <- df[!(df$V1%in%c("Oxidation")),]
+df <- df[!(df$V1%in%c("Deamidated")),]
+
+dfC$V4 <- rep(minval,dim(dfC)[1])
+dfC$V3 <- as.numeric(dfC$V3)
+
+dfF$V4 <- rep(minval,dim(dfF)[1])
+dfF$V3 <- as.numeric(dfF$V3)
+
+df <- adjustheights_all(df,22,0.1,nophospho=TRUE)
+df <- readjust_reverse_all(df,0.1,minval,nophospho=TRUE)
+
+dfC <- adjustheights_all(dfC,22,0.1,nophospho=TRUE)
+dfC <- readjust_reverse_all(dfC,0.1,minval,nophospho=TRUE)
+
+dfF <- adjustheights_all(dfF,22,0.1,nophospho=TRUE)
+dfF <- readjust_reverse_all(dfF,0.1,minval,nophospho=TRUE)
+
+df2 <- data.frame(x1=c(1,45,74,103,151,242,273,304,335,372),x2=c(45,74,103,151,242,273,304,335,372,441),y1=rep(-0.08,10),y2=rep(0.08,10),colo=c("A","B","B","A","B","B","B","B","B","A"),name=c("","N1","N2","Mid","Proline-rich region","R1","R2","R3","R4",""))
+dfC2 <- data.frame(x1=c(1,45,74,103,151,242,273,304,335,372),x2=c(45,74,103,151,242,273,304,335,372,441),y1=rep(-0.08,10),y2=rep(0.08,10),colo=c("A","B","B","A","B","B","B","B","B","A"),name=c("","N1","N2","Mid","Proline-rich region","R1","R2","R3","R4",""))
+dfF2 <- data.frame(x1=c(1,45,74,103,151,242,273,304,335,372),x2=c(45,74,103,151,242,273,304,335,372,441),y1=rep(-0.08,10),y2=rep(0.08,10),colo=c("A","B","B","A","B","B","B","B","B","A"),name=c("","N1","N2","Mid","Proline-rich region","R1","R2","R3","R4",""))
+
+
+textsize <- 5
+ratio <- 4/5
+align <- 0.18
+
+indata2 <- indata2[!(indata2$modification=="GG"&indata2$AA=="S"),]
+
+seg <- data.frame(sectors=c("N-term","N1","N2","Mid","PRR","R1","R2","R3","R4","C-term"),x=c(1,45,74,103,151,242,273,304,335,372),y=c(44,73,102,150,241,272,303,334,371,441),the.v=c(NA),NO=c(NA))
+df <- data.frame(sectors=character(),x=numeric(),y=numeric())
+for(i in 1:dim(seg)[1]) {
+  df.tmp <- data.frame(sectors=rep(seg$sectors[i],length(seg$x[i]:seg$y[i])),x=c(seg$x[i]:seg$y[i]),y=c(seg$x[i]:seg$y[i]))
+  df <- rbind(df,df.tmp)
+}
+df$sectors <- factor(df$sectors,levels=seg$sectors)
+indata2.tmp <- indata2
+colnames(indata2.tmp) <- c("sectors","AA","x","CTR","PSP","PiD","CBD","CTE","AD","modification","site")
+df2 <- merge(df,indata2.tmp,all=TRUE)
+df2[is.na(df2$AD),]$AD <- 0
+df2[is.na(df2$CBD),]$CBD <- 0
+df2[is.na(df2$CTR),]$CTR <- 0
+df2[is.na(df2$CTE),]$CTE <- 0
+df2[is.na(df2$PiD),]$PiD <- 0
+df2[is.na(df2$PSP),]$PSP <- 0
+df2$AD <- as.numeric(df2$AD)
+df2$CBD <- as.numeric(df2$CBD)
+df2$CTR <- as.numeric(df2$CTR)
+df2$PiD <- as.numeric(df2$PiD)
+df2$PSP <- as.numeric(df2$PSP)
+df2$CTE <- as.numeric(df2$CTE)
+
+df2$AA <- NULL
+df3 <- df2[!is.na(df2$site),]
+df3.t <- df3
+if(min_value>0.00) {
+  df3.t[df3.t$AD<min_value,]$AD <- 0.0
+  df3.t[df3.t$CBD<min_value,]$CBD <- 0.0
+  df3.t[df3.t$CTR<min_value,]$CTR <- 0.0
+  df3.t[df3.t$PiD<min_value,]$PiD <- 0.0
+  df3.t[df3.t$PSP<min_value,]$PSP <- 0.0
+  df3.t[df3.t$CTE<min_value,]$CTE <- 0.0
+}
+
+segC <- data.frame(sectors=c("N-term","N1","N2","Mid","PRR","R1","R2","R3","R4","C-term"),x=c(1,45,74,103,151,242,273,304,335,372),y=c(44,73,102,150,241,272,303,334,371,441),the.v=c(NA),NO=c(NA))
+dfC <- data.frame(sectors=character(),x=numeric(),y=numeric())
+for(i in 1:dim(segC)[1]) {
+  dfC.tmp <- data.frame(sectors=rep(segC$sectors[i],length(segC$x[i]:segC$y[i])),x=c(segC$x[i]:segC$y[i]),y=c(segC$x[i]:segC$y[i]))
+  dfC <- rbind(dfC,dfC.tmp)
+}
+dfC$sectors <- factor(dfC$sectors,levels=segC$sectors)
+indataC2.tmp <- indataC2
+colnames(indataC2.tmp) <- c("sectors","AA","x","CTR","PSP","PiD","CBD","CTE","AD","modification","site")
+dfC2 <- merge(dfC,indataC2.tmp,all=TRUE)
+dfC2[is.na(dfC2$AD),]$AD <- 0
+dfC2[is.na(dfC2$CBD),]$CBD <- 0
+dfC2[is.na(dfC2$CTR),]$CTR <- 0
+dfC2[is.na(dfC2$CTE),]$CTE <- 0
+dfC2[is.na(dfC2$PiD),]$PiD <- 0
+dfC2[is.na(dfC2$PSP),]$PSP <- 0
+dfC2$AD <- as.numeric(dfC2$AD)
+dfC2$CBD <- as.numeric(dfC2$CBD)
+dfC2$CTR <- as.numeric(dfC2$CTR)
+dfC2$PiD <- as.numeric(dfC2$PiD)
+dfC2$PSP <- as.numeric(dfC2$PSP)
+dfC2$CTE <- as.numeric(dfC2$CTE)
+
+dfC2$AA <- NULL
+dfC3 <- dfC2[!is.na(dfC2$site),]
+dfC3.t <- dfC3
+if(min_value>0.00) {
+  dfC3.t[dfC3.t$AD<min_value,]$AD <- 0.0
+  dfC3.t[dfC3.t$CBD<min_value,]$CBD <- 0.0
+  dfC3.t[dfC3.t$CTR<min_value,]$CTR <- 0.0
+  dfC3.t[dfC3.t$PiD<min_value,]$PiD <- 0.0
+  dfC3.t[dfC3.t$PSP<min_value,]$PSP <- 0.0
+  dfC3.t[dfC3.t$CTE<min_value,]$CTE <- 0.0
+}
+
+
+segF <- data.frame(sectors=c("N-term","N1","N2","Mid","PRR","R1","R2","R3","R4","C-term"),x=c(1,45,74,103,151,242,273,304,335,372),y=c(44,73,102,150,241,272,303,334,371,441),the.v=c(NA),NO=c(NA))
+dfF <- data.frame(sectors=character(),x=numeric(),y=numeric())
+for(i in 1:dim(segF)[1]) {
+  dfF.tmp <- data.frame(sectors=rep(segF$sectors[i],length(segF$x[i]:segF$y[i])),x=c(segF$x[i]:segF$y[i]),y=c(segF$x[i]:segF$y[i]))
+  dfF <- rbind(dfF,dfF.tmp)
+}
+dfF$sectors <- factor(dfF$sectors,levels=segF$sectors)
+indataF2.tmp <- indataF2
+colnames(indataF2.tmp) <- c("sectors","x","x.2","CTR","PSP","PiD","CBD","CTE","AD","modification","site")
+dfF2 <- merge(dfF,indataF2.tmp,all=TRUE)
+dfF2[is.na(dfF2$AD),]$AD <- 0
+dfF2[is.na(dfF2$CBD),]$CBD <- 0
+dfF2[is.na(dfF2$CTR),]$CTR <- 0
+dfF2[is.na(dfF2$CTE),]$CTE <- 0
+dfF2[is.na(dfF2$PiD),]$PiD <- 0
+dfF2[is.na(dfF2$PSP),]$PSP <- 0
+dfF2$AD <- as.numeric(dfF2$AD)
+dfF2$CBD <- as.numeric(dfF2$CBD)
+dfF2$CTR <- as.numeric(dfF2$CTR)
+dfF2$PiD <- as.numeric(dfF2$PiD)
+dfF2$PSP <- as.numeric(dfF2$PSP)
+dfF2$CTE <- as.numeric(dfF2$CTE)
+dfF3 <- dfF2[!is.na(dfF2$site),]
+dfF3.t <- dfF3
+if(min_value>0.00) {
+  dfF3.t[dfF3.t$AD<min_value,]$AD <- 0.0
+  dfF3.t[dfF3.t$CBD<min_value,]$CBD <- 0.0
+  dfF3.t[dfF3.t$CTR<min_value,]$CTR <- 0.0
+  dfF3.t[dfF3.t$PiD<min_value,]$PiD <- 0.0
+  dfF3.t[dfF3.t$PSP<min_value,]$PSP <- 0.0
+  dfF3.t[dfF3.t$CTE<min_value,]$CTE <- 0.0
+}
+
+df3 <- df3[apply(df3.t[,c(4:9)],1,sum)>0.0,]
+
+bed <- df3[,c("sectors","x","y","modification","site")]
+colnames(bed) <- c("chr","start","end","modification","site")
+bed <- bed[!is.na(bed$site),]
+bed <- bed[bed$modification%in%c("Phospho","Methyl","GG","Acetyl","Citrullination"),]
+
+dfC3 <- dfC3[apply(dfC3.t[,c(4:9)],1,sum)>0.0,]
+
+bedC <- dfC3[,c("sectors","x","y","modification","site")]
+colnames(bedC) <- c("chr","start","end","modification","site")
+bedC <- bedC[!is.na(bedC$site),]
+bedC <- bedC[bedC$modification%in%c("Nontryptic"),]
+
+dfF3 <- dfF3[apply(dfF3.t[,c(5:10)],1,sum,na.rm=TRUE)>0.0,]
+dfF3$y <- dfF3$x.2
+dfF3$x.2 <- NULL
+
+bedF <- dfF3[,c("sectors","x","y","modification","site")]
+colnames(bedF) <- c("chr","start","end","modification","site")
+bedF <- bedF[!is.na(bedF$site),]
+
+col = c("Acetyl"="#93478F","Citrullination"="#FF17E3","Methyl"="#FF7369","Phospho"="#000000","GG"="#7AB77C","Nontryptic"="#9B9B9B")
+
+bgcol <- c("AD"="#E41A1C","CTR"="#4DAF4A","PiD"="#984EA3","PSP"="#FF7F00","CBD"="#FFD92F","DLB"="#8DD3C7","CTE"="#1740B6","fAD"="#9C0B0C","CAA"="#914B00","NPCAD"="#FF17E3","FTLDTau"="#17DFFF")
+flexi_col <- c("absence"="#BEBADA","presence"="#E78AC3","3R"="#23A179","4R"="#256EA1","lowTau"="#C1ACB1FF","highTau"="#50162D","lowMod"="#4575B4","highMod"="#D73027")
+
+alpha <- 0.1
+selectbordercolor <- function(x) {
+  "#000000"
+}
+fact <- c(1.2,1.2,1.2,1.2,1.2)
+fact2 <- c(1,1.5,2,2.5,3)
+
+thicktracks <- 0.06
+thintracks <- 0.01
+m1 <- 0.0025
+m2 <- 0.005
+lwd <- 0.5
+lwd2 <- 2
+lwd3 <- 1
+lty1 <- 1
+lty2 <- 1
+text_x <- 10
+text_y <- 0.5
+facing <- "clockwise"
+labelsize <- 0.6
+
+major_at <- c(1,45,74,103,151,242,273,304,335,372,441)
+major_at <- c(1,50,100,150,200,250,300,350,400,441)
+
+sharedPTM <- function(x) {
+  logcutoff <- 1
+  percentcutoffupper <- 0.1
+  percentcutofflower <- 0.05
+  overUpper <- sum(x>=percentcutoffupper,na.rm=TRUE)
+  overLower <- sum(x>=percentcutofflower,na.rm=TRUE)
+  overLowerunderUpper <- overUpper-overLower
+  result <- "unique"
+  if(overUpper>1) {
+    result <- "shared"
+  }
+  if(overUpper==1 && overLowerunderUpper>1) {
+    y <- log(max(x)/x)
+    y[y==Inf] <- 0
+    underthresholdover0 <- sum(y<logcutoff,na.rm=TRUE) - sum(y==0,na.rm=TRUE)
+    if(underthresholdover0>=1) {
+      result <- "shared"
+    }
+  }
+  if(overUpper==0&&overLower>1) {
+    y <- log(max(x)/x)
+    y[y==Inf] <- 0
+    underthresholdover0 <- sum(y<logcutoff,na.rm=TRUE) - sum(y==0,na.rm=TRUE)
+    if(underthresholdover0>=1) {
+      result <- "shared"
+    }
+  }
+  result
+}
+
+df4 <- df3
+df4$y <- NULL
+df4$shared <- apply(df4[,c(3:8)],1,sharedPTM)
+df4.melt <- melt(df4,id.vars=c("sectors","x","modification","site","shared"))
+df4.melt <- df4.melt[(df4.melt$modification!="Oxidation"),]
+df4.melt <- df4.melt[(df4.melt$modification!="Deamidated"),]
+df4.melt$variable <- as.character(df4.melt$variable)
+
+dfC4 <- dfC3
+dfC4$y <- NULL
+dfC4$shared <- apply(dfC4[,c(3:8)],1,sharedPTM)
+dfC4.melt <- melt(dfC4,id.vars=c("sectors","x","modification","site","shared"))
+dfC4.melt$variable <- as.character(dfC4.melt$variable)
+
+dfF4 <- dfF3
+dfF4$shared <- apply(dfF4[,c(4:9)],1,sharedPTM)
+dfF4.melt <- melt(dfF4,id.vars=c("sectors","x","y","modification","site","shared"))
+dfF4.melt$variable <- as.character(dfF4.melt$variable)
+
+df4.melt.unique <- df4.melt[df4.melt$shared=="unique",]
+df4.melt.unique$shared <- NULL
+df4.melt.shared <- df4.melt[df4.melt$shared=="shared",]
+df4.melt.shared$shared <- NULL
+df4.melt.shared$variable <- NULL
+cnames <- colnames(df4.melt.shared)
+df4.melt.shared <- aggregate(df4.melt.shared$value,by=list(df4.melt.shared$sectors,df4.melt.shared$x,df4.melt.shared$modification,df4.melt.shared$site),mean)
+colnames(df4.melt.shared) <- cnames
+
+dfC4.melt.unique <- dfC4.melt[dfC4.melt$shared=="unique",]
+dfC4.melt.unique$shared <- NULL
+dfC4.melt.shared <- dfC4.melt[dfC4.melt$shared=="shared",]
+dfC4.melt.shared$shared <- NULL
+dfC4.melt.shared$variable <- NULL
+cnamesC <- colnames(dfC4.melt.shared)
+dfC4.melt.shared <- aggregate(dfC4.melt.shared$value,by=list(dfC4.melt.shared$sectors,dfC4.melt.shared$x,dfC4.melt.shared$modification,dfC4.melt.shared$site),mean)
+colnames(dfC4.melt.shared) <- cnamesC
+
+dfF4.melt.unique <- dfF4.melt[dfF4.melt$shared=="unique",]
+dfF4.melt.unique$shared <- NULL
+dfF4.melt.shared <- dfF4.melt[dfF4.melt$shared=="shared",]
+dfF4.melt.shared$shared <- NULL
+dfF4.melt.shared$variable <- NULL
+cnamesF <- colnames(dfF4.melt.shared)
+dfF4.melt.shared <- aggregate(dfF4.melt.shared$value,by=list(dfF4.melt.shared$sectors,dfF4.melt.shared$x,dfF4.melt.shared$y,dfF4.melt.shared$modification,dfF4.melt.shared$site),na.action=na.pass,mean,na.rm=TRUE)
+colnames(dfF4.melt.shared) <- cnamesF
+
+
+df5 <- df4[,c("modification","x","site")]
+colnames(df5) <- c("V1","V3","V5")
+df5 <- df5[!duplicated(df5),]
+df5 <- df5[order(df5$V3,df5$V1),]
+df5 <- df5[df5$V1!="Oxidation",]
+df5 <- df5[df5$V1!="Deamidated",]
+
+dfC5 <- dfC4[,c("modification","x","site")]
+colnames(dfC5) <- c("V1","V3","V5")
+dfC5 <- dfC5[!duplicated(dfC5),]
+dfC5 <- dfC5[order(dfC5$V3,dfC5$V1),]
+
+dfF5 <- dfF4[,c("modification","x","y","site")]
+colnames(dfF5) <- c("V1","V3","V33","V5")
+dfF5 <- dfF5[!duplicated(dfF5),]
+dfF5 <- dfF5[order(dfF5$V3,dfF5$V33,dfF5$V1),]
+
+
+minval <- 0.13
+df5$V4 <- rep(minval,dim(df5)[1])
+df5$V4 <- -1*minval
+df5$V3 <- as.numeric(df5$V3)
+df5$V1 <- NULL
+df5 <- df5[!duplicated(df5),]
+df5$V1 <- rep("Phospho",dim(df5)[1])
+df5 <- adjustheights_all(df5,14,0.1,TRUE)
+df5 <- readjust_reverse_all(df5,0.1,minval,TRUE)
+df5$V6[dim(df5)[1]] <- 1
+df5$V7 <- seq(1,dim(df5)[1],by=1)
+
+dfC5$V4 <- rep(minval,dim(dfC5)[1])
+dfC5$V4 <- -1*minval
+dfC5$V3 <- as.numeric(dfC5$V3)
+dfC5$V1 <- NULL
+dfC5 <- dfC5[!duplicated(dfC5),]
+dfC5$V1 <- rep("Phospho",dim(dfC5)[1])
+dfC5 <- adjustheights_all(dfC5,14,0.1,TRUE)
+dfC5 <- readjust_reverse_all(dfC5,0.1,minval,TRUE)
+dfC5$V6[dim(dfC5)[1]] <- 1
+dfC5$V7 <- seq(1,dim(dfC5)[1],by=1)
+
+dfF5$V4 <- rep(minval,dim(dfF5)[1])
+dfF5$V4 <- -1*minval
+dfF5$V3 <- as.numeric(dfF5$V3)
+dfF5$V33 <- as.numeric(dfF5$V33)
+dfF5$V1 <- NULL
+dfF5 <- dfF5[!duplicated(dfF5),]
+dfF5$V1 <- rep("Phospho",dim(dfF5)[1])
+dfF5 <- adjustheights_all(dfF5,14,0.1,TRUE)
+dfF5 <- readjust_reverse_all(dfF5,0.1,minval,TRUE)
+dfF5$V6[dim(dfF5)[1]] <- 1
+dfF5$V7 <- seq(1,dim(dfF5)[1],by=1)
+
+
+df6 <- data.frame(x1=c(1,45,74,103,151,242,273,304,335,372),x2=c(45,74,103,151,242,273,304,335,372,441),y1=rep(-0.1,10),y2=rep(0.1,10),colo=c("A","B","B","A","B","B","B","B","B","A"),name=c("","N1","N2","Mid","Proline-rich region","R1","R2","R3","R4",""),sectors=c("N-term","N1","N2","Mid","PRR","R1","R2","R3","R4","C-term"))
+
+#######################################################
+# remap to new colours/types
+# reduce FLEXI and PTM/Cleavage + combine PTM/Cleavage
+npdxs <- factor(c("CTR","PSP","PiD","CBD","CTE","AD"),levels=c("CTR","PSP","PiD","CBD","CTE","AD"))
+npdxsF <- npdxs
+npdxsP <- npdxs
+npdxsC <- npdxs
+
+indataP <- read.csv(inpfileP,header=FALSE)
+indataC <- read.csv(inpfileC,header=FALSE)
+indataF <- read.csv(inpfileF,header=FALSE)
+
+metaP <- indataP[,((indataP[2,]=="")&(indataP[1,]!=""))]
+metaC <- indataC[,((indataC[2,]=="")&(indataC[1,]!=""))]
+metaF <- indataF[,((indataF[2,]=="")&(indataF[1,]!=""))]
+
+PTMsites <- indataP[1,-c(1,2)]
+Cleavagesites <- indataC[1,-c(1,2)]
+FLEXIsites <- indataF[3,-c(1,2)]
+
+dfP <- as.data.frame(matrix(unlist(lapply(PTMsites,splitPTMs)),ncol=5,byrow=TRUE))
+dfC <- as.data.frame(matrix(unlist(lapply(Cleavagesites,splitPTMs)),ncol=5,byrow=TRUE))
+dfF <- as.data.frame(matrix(unlist(lapply(FLEXIsites,splitFLEXI)),ncol=5,byrow=TRUE))
+
+dfP[dfP$V1=="Iso-2N4R",]$V3 <- 444
+dfP[dfP$V1=="Iso-0N",]$V3 <- 445
+dfP[dfP$V1=="Iso-1N",]$V3 <- 446
+dfP[dfP$V1=="Iso-3R",]$V3 <- 447
+
+dfC[dfC$V1=="Iso-2N4R",]$V3 <- 444
+dfC[dfC$V1=="Iso-0N",]$V3 <- 445
+dfC[dfC$V1=="Iso-1N",]$V3 <- 446
+dfC[dfC$V1=="Iso-3R",]$V3 <- 447
+colnames(dfC) <- colnames(dfP)
+
+dfF[dfF$V1=="TotalTau",]$V3 <- 444
+dfF[dfF$V1=="TotalTau",]$V4 <- 446
+dfF[dfF$V1=="Ratio",]$V1 <- "RisoformRatio"
+dfF[dfF$V1=="RisoformRatio",]$V3 <- 446
+dfF[dfF$V1=="RisoformRatio",]$V4 <- 448
+
+dfP$x1 <- as.numeric(dfP$V3)
+dfP$x2 <- dfP$x1+1
+
+dfC$x1 <- as.numeric(dfC$V3)
+dfC$x2 <- dfC$x1+1
+
+dfF$x1 <- as.numeric(dfF$V2)
+dfF$x2 <- as.numeric(dfF$V3)
+
+indataP <- as.data.frame(t(indataP[,-c(1,2)]))
+dfP[dfP$V2=="X",]$V3 <- 0
+dfP$V2 <- paste(dfP$V2,dfP$V3,sep="")
+dfP <- dfP[,c("V1","V2","V5","x1","x2")]
+colnames(dfP) <- c("V2","V3","V4","x1","x2")
+indataP <- merge(dfP,indataP,all=TRUE)
+colnames(indataP) <- c("V1","V2","iso","x1","x2","V3",metaP$V2[-c(1:4)])
+indataP.melt <- melt(indataP,id.vars=c("V1","V2","iso","V3","x1","x2"))
+
+indataC <- as.data.frame(t(indataC[,-c(1,2)]))
+dfC[dfC$V2=="X",]$V3 <- 0
+dfC$V2 <- paste(dfC$V2,dfC$V3,sep="")
+dfC <- dfC[,c("V1","V2","V5","x1","x2")]
+colnames(dfC) <- c("V2","V3","V4","x1","x2")
+indataC <- merge(dfC,indataC,all=TRUE)
+colnames(indataC) <- c("V1","V2","iso","x1","x2","V3",metaC$V2[-c(1:4)])
+indataC.melt <- melt(indataC,id.vars=c("V1","V2","iso","V3","x1","x2"))
+
+indataF <- as.data.frame(t(indataF[,-c(1,2)]))
+indataF$V2 <- substitueSeparators2(indataF$V2)
+dfF$V2 <- paste(dfF$V5,dfF$x1,dfF$x2,sep=".")
+dfF[dfF$V1=="TotalTau",]$V2 <- "2N4R.1.441"
+dfF[dfF$V1=="RisoformRatio",]$V2 <- "4R3R.1.441"
+dfF <- dfF[,c("V1","V2","x1","x2")]
+indataF <- merge(dfF,indataF,all=TRUE)
+colnames(indataF) <- c("V1","V2","x1","x2","V3",metaF$V2[-c(1:3)])
+indataF.melt <- melt(indataF,id.vars=c("V1","V2","V3","x1","x2"))
+
+for(i in 1:length(npdxsP)) {
+  npdx <- npdxsP[i]
+  tmp <- indataP.melt[indataP.melt$variable==npdx,]
+  tmp <- tmp[order(tmp$value,decreasing=TRUE),]
+  tmp <- tmp[1:threshold,]$V3
+  indataP.melt <- indataP.melt[!(indataP.melt$variable==npdx&(!indataP.melt$V3%in%tmp)),]
+}
+
+indataP.melt$site <- paste(indataP.melt$x1,indataP.melt$x2,sep="-")
+if(sum(indataP.melt$V2=="X0")>0) {
+indataP.melt[indataP.melt$V2=="X0",]$site <- "1-441"
+}
+
+for(i in 1:length(npdxsC)) {
+  npdx <- npdxsC[i]
+  tmp <- indataC.melt[indataC.melt$variable==npdx,]
+  tmp <- tmp[order(tmp$value,decreasing=TRUE),]
+  tmp <- tmp[1:threshold,]$V3
+  indataC.melt <- indataC.melt[!(indataC.melt$variable==npdx&(!indataC.melt$V3%in%tmp)),]
+}
+
+indataC.melt$site <- paste(indataC.melt$x1,indataC.melt$x2,sep="-")
+if(sum(indataC.melt$V2=="X0")>0) {
+  indataC.melt[indataC.melt$V2=="X0",]$site <- "1-441"
+}
+
+for(i in 1:length(npdxsF)) {
+  npdx <- npdxsF[i]
+  tmp <- indataF.melt[indataF.melt$variable==npdx,]
+  tmp <- tmp[order(tmp$value,decreasing=TRUE),]
+  tmp <- tmp[1:threshold,]$V3
+  indataF.melt <- indataF.melt[!(indataF.melt$variable==npdx&(!indataF.melt$V3%in%tmp)),]
+}
+
+indataF.melt$site <- paste(indataF.melt$x1,indataF.melt$x2,sep="-")
+indataF.melt[indataF.melt$V1=="TotalTau",]$site <- "1-441"
+indataF.melt[indataF.melt$V1=="RisoformRatio",]$site <- "1-441"
+indataF.melt[indataF.melt$V1=="RisoformRatio",]$V1 <- "Ratio"
+
+df4.melt$newvalue <- rep("",dim(df4.melt)[1])
+df4.melt[(df4.melt$value<0.5),]$newvalue <- "absence"
+df4.melt[(df4.melt$value>=0.5),]$newvalue <- "presence"
+
+dfC4.melt$newvalue <- rep("",dim(dfC4.melt)[1])
+dfC4.melt[(dfC4.melt$value<0.5),]$newvalue <- "absence"
+dfC4.melt[(dfC4.melt$value>=0.5),]$newvalue <- "presence"
+
+dfF4.melt$newvalue <- rep("",dim(dfF4.melt)[1])
+dfF4.melt[(dfF4.melt$modification=="TotalTau")&(dfF4.melt$value>=200),]$newvalue <- "highTau"
+dfF4.melt[(dfF4.melt$modification=="TotalTau")&(dfF4.melt$value<200),]$newvalue <- "lowTau"
+dfF4.melt[(dfF4.melt$modification=="Ratio")&(dfF4.melt$value>=3),]$newvalue <- "4R"
+dfF4.melt[(dfF4.melt$modification=="Ratio")&(dfF4.melt$value<3),]$newvalue <- "3R"
+dfF4.melt[(!(dfF4.melt$modification%in%c("TotalTau","Ratio")))&(dfF4.melt$value<0.5),]$newvalue <- "highMod"
+dfF4.melt[(!(dfF4.melt$modification%in%c("TotalTau","Ratio")))&(dfF4.melt$value>=0.5),]$newvalue <- "lowMod"
+
+df4.melt$newmod <- paste(df4.melt$modification,df4.melt$site,sep="_")
+indataP.melt$newmod <- paste(indataP.melt$V1,indataP.melt$V2,sep="_")
+for(i in 1:length(npdxsP)) {
+  npdx <- npdxsP[i]
+  tmp <- indataP.melt[indataP.melt$variable==npdx,]
+  tmp <- tmp$newmod
+  df4.melt[(df4.melt$variable==npdx&(!df4.melt$newmod%in%tmp)),]$newvalue <- NA
+}
+
+dfC4.melt$newmod <- paste(dfC4.melt$modification,dfC4.melt$site,sep="_")
+indataC.melt$newmod <- paste(indataC.melt$V1,indataC.melt$V2,sep="_")
+indataC.melt$newmod <- str_replace_all(indataC.melt$newmod,"Non-tryptic","Nontryptic")
+for(i in 1:length(npdxsC)) {
+  npdx <- npdxsC[i]
+  tmp <- indataC.melt[indataC.melt$variable==npdx,]
+  tmp <- tmp$newmod
+  dfC4.melt[(dfC4.melt$variable==npdx&(!dfC4.melt$newmod%in%tmp)),]$newvalue <- NA
+}
+
+for(i in 1:length(npdxsF)) {
+  npdx <- npdxsF[i]
+  tmp <- indataF.melt[indataF.melt$variable==npdx,]
+  tmp <- tmp$V1
+  dfF4.melt[(dfF4.melt$variable==npdx&(!dfF4.melt$modification%in%tmp)),]$newvalue <- NA
+}
+
+tmp <- df4.melt$newmod
+for(mod in tmp) {
+  if(all(is.na(df4.melt[df4.melt$newmod==mod,]$newvalue))) {
+    df4.melt <- df4.melt[df4.melt$newmod!=mod,]
+  }
+}
+indataP.melt$newmod <- NULL
+df4.melt$newmod <- NULL
+
+tmp <- dfC4.melt$newmod
+for(mod in tmp) {
+  if(all(is.na(dfC4.melt[dfC4.melt$newmod==mod,]$newvalue))) {
+    dfC4.melt <- dfC4.melt[dfC4.melt$newmod!=mod,]
+  }
+}
+indataC.melt$newmod <- NULL
+dfC4.melt$newmod <- NULL
+
+tmp <- dfF4.melt$modification
+for(mod in tmp) {
+  if(all(is.na(dfF4.melt[dfF4.melt$modification==mod,]$newvalue))) {
+    dfF4.melt <- dfF4.melt[dfF4.melt$modification!=mod,]
+  }
+}
+
+df4.melt <- rbind(df4.melt,dfC4.melt)
+
+#######################################################
+
+
+df4.tmp <- df4.melt[,c("x","modification","site","sectors")]
+df4.tmp <- df4.tmp[!duplicated(df4.tmp),]
+df4.tmp <- df4.tmp[order(df4.tmp$x),]
+df4.tmp$rank <- seq(1,dim(df4.tmp)[1],by=1)
+df4.melt <- merge(df4.melt,df4.tmp,all=TRUE)
+
+dfF4.tmp <- dfF4.melt[,c("x","y","modification","site","sectors")]
+dfF4.tmp <- dfF4.tmp[!duplicated(dfF4.tmp),]
+dfF4.tmp <- dfF4.tmp[order(dfF4.tmp$x,dfF4.tmp$y),]
+dfF4.tmp$rank <- seq(1,dim(dfF4.tmp)[1],by=1)
+dfF4.melt <- merge(dfF4.melt,dfF4.tmp,all=TRUE)
+
+df4.melt2 <- df4.melt
+df4.melt2$shared <- rep("shared",dim(df4.melt2)[1])
+df4.melt2$variable <- rep("Modification",dim(df4.melt2)[1])
+df4.melt2$value <- rep(1,dim(df4.melt2)[1])
+df4.melt2$newvalue <- rep(NA,dim(df4.melt2)[1])
+df4.melt2 <- df4.melt2[!duplicated(df4.melt2),]
+
+dfF4.melt2 <- dfF4.melt
+dfF4.melt2$shared <- rep("shared",dim(dfF4.melt2)[1])
+dfF4.melt2$variable <- rep("Modification",dim(dfF4.melt2)[1])
+dfF4.melt2$value <- rep(1,dim(dfF4.melt2)[1])
+dfF4.melt2$newvalue <- rep(NA,dim(dfF4.melt2)[1])
+dfF4.melt2 <- dfF4.melt2[!duplicated(dfF4.melt2),]
+
+df4.melt <- rbind(df4.melt,df4.melt2)
+dfF4.melt <- rbind(dfF4.melt,dfF4.melt2)
+
+textsize <- 4
+ratio <- 4/5
+align <- 0.18
+
+
+alpha <- 1
+selectbackgroundcolor <- function(x) {
+  scales::alpha(bgcol[x],alpha=alpha)
+}
+indent <- 1.5
+df5$V4 <- abs(df5$V4)
+dfF5$V4 <- abs(dfF5$V4)
+
+g_legend<-function(a.gplot){
+  tmp <- ggplot_gtable(ggplot_build(a.gplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)}
+
+
+df4.melt2 <- df4.melt[df4.melt$variable=="Modification",]
+df4.melt2$cleavage <- sample(c("C-term","N-term"),dim(df4.melt2)[1],replace=TRUE)
+df4.melt <- df4.melt[df4.melt$variable!="Modification",]
+variable.labs <- c("CTR","PSP","PiD","CBD","CTE","AD")
+names(variable.labs) <- c("CTR","PSP","PiD","CBD","CTE","AD")
+df4.melt$variable <- factor(df4.melt$variable,levels=c("CTR","PSP","PiD","CBD","CTE","AD"))
+
+dfF4.melt2 <- dfF4.melt[dfF4.melt$variable=="Modification",]
+dfF4.melt2$cleavage <- sample(c("C-term","N-term"),dim(dfF4.melt2)[1],replace=TRUE)
+dfF4.melt <- dfF4.melt[dfF4.melt$variable!="Modification",]
+variable.labsF <- c("CTR","PSP","PiD","CBD","CTE","AD")
+names(variable.labsF) <- c("CTR","PSP","PiD","CBD","CTE","AD")
+dfF4.melt$variable <- factor(dfF4.melt$variable,levels=c("CTR","PSP","PiD","CBD","CTE","AD"))
+
+cleavage_col <- c("N-term"="#607196","C-term"="#A6608B")
+textsize <- 12
+
+df5$V4 <- abs(df5$V4)
+dfF5$V4 <- abs(dfF5$V4)
+
+####### extract 1
+
+df6.tmp <- df6[df6$sectors%in%df4.melt$sectors,]
+changingdf <- df6.tmp[order(df6.tmp$x2,decreasing=TRUE),]
+changingdf <- changingdf[,c("x2","sectors")]
+if(changingdf$x2[1]==441) {
+  changingdf <- changingdf[-1,]
+}
+if(dim(df4.melt[df4.melt$x>=changingdf$x2[1],])[1]==0) {
+  changingdf <- changingdf[-1,]
+}
+
+df4.melt.tmp <- df4.melt
+splitrank <- c()
+for(tempidx in changingdf$x2) {
+  splitrank <- c(min(df4.melt[df4.melt$x>=tempidx,]$rank),splitrank+1)
+  df4.melt[df4.melt$x>=tempidx,]$rank <- df4.melt[df4.melt$x>=tempidx,]$rank + 1
+}
+df6.tmp <- df6[df6$sectors%in%df4.melt$sectors,]
+changingdf <- df6.tmp[order(df6.tmp$x2,decreasing=FALSE),]
+changingdf <- changingdf[,c("x2","sectors")]
+changingdf$x <- (c(splitrank,max(df4.melt$rank)) + c(0,splitrank)) / 2 
+
+##### extract 2
+df6.tmp <- df6[df6$sectors%in%df4.melt2$sectors,]
+changingx <- df6.tmp$x2[order(df6.tmp$x2,decreasing=TRUE)]
+if(changingx[1]==441) {
+  changingx <- changingx[-1]
+}
+if(changingx[1]>max(df4.melt2$x)) {
+  changingx <- changingx[-1]
+}
+
+df4.melt2.tmp <- df4.melt2
+splitrank2 <- c()
+for(tempidx in changingx) {
+  splitrank2 <- c(min(df4.melt2[df4.melt2$x>=tempidx,]$rank),splitrank2+1)
+  df4.melt2[df4.melt2$x>=tempidx,]$rank <- df4.melt2[df4.melt2$x>=tempidx,]$rank + 1
+  
+}
+
+##### extract 5
+df6 <- rbind(data.frame(x1=c(0),x2=c(1),y1=c(-0.1),y2=c(0.1),colo=c("B"),name=c("total"),sectors=c("total")),df6)
+dfF4.melt$sectors <- as.character(dfF4.melt$sectors)
+dfF4.melt[dfF4.melt$modification%in%c("TotalTau","Ratio"),]$sectors <- "total"
+dfF4.melt[dfF4.melt$modification%in%c("TotalTau","Ratio"),]$x <- 0
+dfF4.melt[dfF4.melt$modification%in%c("TotalTau","Ratio"),]$y <- 1
+dfF4.melt$sectors <- factor(dfF4.melt$sectors,levels=df6$sectors)
+df6.tmp <- df6[df6$sectors%in%dfF4.melt$sectors,]
+changingdfF <- df6.tmp[order(df6.tmp$x2,decreasing=TRUE),]
+changingdfF <- changingdfF[,c("x2","sectors")]
+if(changingdfF$x2[1]==441) {
+  changingdfF <- changingdfF[-1,]
+} 
+if(dim(dfF4.melt[dfF4.melt$x>=changingdfF$x2[1],])[1]==0) {
+  changingdfF <- changingdfF[-1,]
+}
+
+dfF4.melt.tmp <- dfF4.melt
+splitrankF <- c()
+for(tempidx in changingdfF$x2) {
+  splitrankF <- c(min(dfF4.melt[dfF4.melt$x>=tempidx,]$rank),splitrankF+1)
+  dfF4.melt[dfF4.melt$x>=tempidx,]$rank <- dfF4.melt[dfF4.melt$x>=tempidx,]$rank + 1
+}
+df6.tmp <- df6[df6$sectors%in%dfF4.melt$sectors,]
+changingdfF <- df6.tmp[order(df6.tmp$x2,decreasing=FALSE),]
+changingdfF <- changingdfF[,c("x2","sectors")]
+changingdfF$x <- (c(splitrankF,max(dfF4.melt$rank)) + c(0,splitrankF)) / 2 
+
+##### extract 6
+dfF4.melt2$sectors <- as.character(dfF4.melt2$sectors)
+dfF4.melt2[dfF4.melt2$modification%in%c("TotalTau","Ratio"),]$sectors <- "total"
+dfF4.melt2[dfF4.melt2$modification%in%c("TotalTau","Ratio"),]$x <- 0
+dfF4.melt2[dfF4.melt2$modification%in%c("TotalTau","Ratio"),]$y <- 1
+dfF4.melt2$sectors <- factor(dfF4.melt2$sectors,levels=df6$sectors)
+df6.tmp <- df6[df6$sectors%in%dfF4.melt2$sectors,]
+changingx <- df6.tmp$x2[order(df6.tmp$x2,decreasing=TRUE)]
+if(changingx[1]==441) {
+  changingx <- changingx[-1]
+}
+if(changingx[1]>max(dfF4.melt2$x)) {
+  changingx <- changingx[-1]
+}
+
+dfF4.melt2.tmp <- dfF4.melt2
+splitrankF2 <- c()
+for(tempidx in changingx) {
+  splitrankF2 <- c(min(dfF4.melt2[dfF4.melt2$x>=tempidx,]$rank),splitrankF2+1)
+  dfF4.melt2[dfF4.melt2$x>=tempidx,]$rank <- dfF4.melt2[dfF4.melt2$x>=tempidx,]$rank + 1
+  
+}
+
+df6 <- df6[df6$sectors!="total",]
+
+df4.melt <- df4.melt[order(df4.melt$rank),]
+
+linedist <- 0
+topmargin <- 0.4
+df.tmp_legend <- data.frame(variable=c("A","B","C","D","E","F","G","H"),rank=c(1,2,3,4,5,6,7,8),
+                     newvalue=factor(c("highMod","lowMod","lowTau","highTau","3R","4R","presence","absence"),levels=c("highMod","lowMod","lowTau","highTau","3R","4R","presence","absence")))
+
+leg <- ggplot() +
+  geom_tile(data=df.tmp_legend,aes(y=rank,x=variable,fill=newvalue),color="black",height=1) +
+  scale_fill_manual("Feature Importance", values=flexi_col,na.value="#FFFFFF",labels=c("highMod"="High Modification Extent","lowMod"="Low Modification Extent","lowTau"="Low Total Tau Amount","highTau"="High Total Tau Amount","3R"="Predominantly 3R Isoform","4R"="Predominantly 4R Isoform","presence"="PTM/Cleavage Present","absence"="PTM/Cleavage Absent")) +
+  theme(legend.position="bottom",legend.title=element_text(size=textsize),legend.text=element_text(size=textsize*0.75),panel.grid=element_blank(),plot.margin=unit(c(0.1,0.1,0.1,topmargin),"line"),panel.background=element_blank(),axis.text=element_blank(),axis.ticks=element_blank(),axis.title=element_blank(),panel.spacing.y=unit(linedist,"lines")) +
+  coord_flip() +
+  labs(fill="PTM\nPatient Frequency") +
+  guides(fill=guide_legend(title.position="top"))
+
+p <- ggplot() + 
+  geom_tile(data=subset(df4.melt,modification=="Phospho"),aes(y=rank,x=variable,fill=newvalue),colour="black",height=1) +
+  scale_fill_manual("Feature Importance", values=flexi_col,na.value="#FFFFFF",labels=c("highMod"="High Modification Extent","lowMod"="Low Modification Extent","lowTau"="Low Total Tau Amount","highTau"="High Total Tau Amount","3R"="Predominantly 3R Isoform","4R"="Predominantly 4R Isoform","presence"="PTM/Cleavage Present","absence"="PTM/Cleavage Absent")) +
+  geom_tile(data=subset(df4.melt,modification=="GG"),aes(y=rank,x=variable,fill=newvalue),colour="black",height=1) +
+  geom_tile(data=subset(df4.melt,modification=="Acetyl"),aes(y=rank,x=variable,fill=newvalue),colour="black",height=1) +
+  geom_tile(data=subset(df4.melt,modification=="Methyl"),aes(y=rank,x=variable,fill=newvalue),colour="black",height=1) +
+  geom_tile(data=subset(df4.melt,modification=="Citrullination"),aes(y=rank,x=variable,fill=newvalue),colour="black",height=1) +
+  geom_tile(data=subset(df4.melt,modification=="Nontryptic"),aes(y=rank,x=variable,fill=newvalue),colour="black",height=1) +
+  geom_hline(yintercept=splitrank,colour="gray24",lwd=1.5) +
+  scale_x_discrete(expand=c(0,0)) + 
+  scale_y_continuous(expand=c(0,0),limits=c(0,(max(df4.melt$rank)+1)),breaks=changingdf$x,labels=changingdf$sectors,position="right") + 
+  theme(legend.position="bottom",strip.text.y.left=element_text(size=textsize,angle=0),legend.title=element_text(size=textsize),legend.text=element_text(size=textsize*0.75),panel.grid=element_blank(),plot.margin=unit(c(0.1,0.1,0.1,0.1),"line"),panel.background=element_blank(),axis.text.x=element_text(size=textsize*0.75),axis.text.y=element_blank(),axis.ticks=element_blank(),axis.title=element_blank(),panel.spacing.y=unit(0,"lines")) +
+  facet_wrap(~variable,scales="free_y",nrow=11,strip.position="left",labeller=labeller(variable=variable.labs)) +
+  coord_flip() +
+  labs(fill="PTM\nPatient Frequency") +
+  guides(fill=guide_legend(title.position="top"))
+
+df4.melt2 <- df4.melt2[order(df4.melt2$rank),]
+
+p2 <- ggplot() + 
+  geom_tile(data=subset(df4.melt2,variable=="Modification"),aes(y=rank,x=variable,fill=modification),colour="black",height=1) +
+  scale_fill_manual("PTM and Cleavage Type", values=col, breaks=c("Acetyl","Citrullination","Phospho","GG","Nontryptic"), labels=c("Acetyl"="Acetylation","Phospho"="Phosphorylation","GG"="Ubiquitination","Citrullination"="Citrullination","Nontryptic"="Non-tryptic Cleavage")) +
+  scale_x_discrete(expand=c(0,0)) + 
+  scale_y_continuous(expand=c(0,0),limits=c(0,(max(df4.melt2$rank)+1))) + 
+  theme(legend.position="bottom",legend.title=element_text(size=textsize),legend.text=element_text(size=textsize*0.75),panel.grid=element_blank(),plot.margin=unit(c(0.1,0.1,0.1,topmargin),"line"),panel.background=element_blank(),axis.text=element_blank(),axis.ticks=element_blank(),axis.title=element_blank(),panel.spacing.y=unit(linedist,"lines")) +
+  coord_flip() +
+  guides(fill=guide_legend(ncol=3,title.position="top"))
+
+changingdfF[changingdfF$sectors=="total",]$sectors <- "" 
+
+p3 <- ggplot() + 
+  geom_tile(data=dfF4.melt,aes(y=rank,x=variable,fill=newvalue),colour="black",height=1) +
+  scale_fill_manual("Feature\nImportance", values=flexi_col,na.value="#FFFFFF") +
+  geom_hline(yintercept=splitrankF,colour=rep(c("gray24"),1),lwd=rep(c(1.5),1)) +
+  scale_x_discrete(expand=c(0,0)) + 
+  scale_y_continuous(expand=c(0,0),limits=c(0,(max(dfF4.melt$rank)+1)),breaks=changingdfF$x,labels=changingdfF$sectors,position="left") + 
+  theme(legend.position="bottom",strip.text.y.left=element_text(size=textsize,angle=0),legend.title=element_text(size=textsize),legend.text=element_text(size=textsize*0.75),panel.grid=element_blank(),plot.margin=unit(c(0.1,0.1,0.1,0.1),"line"),panel.background=element_blank(),axis.text.x=element_text(size=textsize*0.75),axis.text.y=element_blank(),axis.ticks=element_blank(),axis.title=element_blank(),panel.spacing.y=unit(0,"lines")) +
+  facet_wrap(~variable,scales="free_y",nrow=6,strip.position="left",labeller=labeller(variable=variable.labs)) +
+  coord_flip() +
+  labs(fill="FLEXITau\nModification Extent") +
+  guides(fill=guide_legend(title.position="top"))
+
+p4 <- ggplot() + 
+  geom_tile(data=dfF4.melt2,aes(y=rank,x=variable,fill=modification),colour="black",height=1) +
+  scale_fill_manual("FLEXITau", values=cleavage_col) +
+  scale_x_discrete(expand=c(0,0)) + 
+  scale_y_continuous(expand=c(0,0),limits=c(0,(max(dfF4.melt$rank)+1))) + 
+  theme(legend.position="bottom",legend.title=element_text(size=textsize),legend.text=element_text(size=textsize*0.75),panel.grid=element_blank(),plot.margin=unit(c(0.1,0.1,0.1,topmargin),"line"),panel.background=element_blank(),axis.text=element_blank(),axis.ticks=element_blank(),axis.title=element_blank(),panel.spacing.x=unit(linedist,"lines")) +
+  labs(fill="FLEXITau") +
+  coord_flip() +
+  guides(fill=guide_legend(ncol=2,title.position="top"))
+
+
+p_legend<-g_legend(p)
+p <- p + theme(legend.position="none")
+p2_legend<-g_legend(p2)
+p2 <- p2 + theme(legend.position="none")
+p3_legend<-g_legend(p3)
+p3 <- p3 + theme(legend.position="none")
+p4 <- p4 + theme(legend.position="none")
+leg_legend<-g_legend(leg)
+leg <- leg + theme(legend.position="none")
+
+
+g <- ggplot_gtable(ggplot_build(p))
+stripl <- which(grepl('strip-l', g$layout$name))
+fills <- bgcol[c("CTR","PSP","PiD","CBD","CTE","AD")]
+textcols <- c("#000000","#000000","#E6E6E6","#000000","#E6E6E6","#000000")
+k <- 1
+for (i in stripl) {
+  j <- which(grepl('background', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  j <- which(grepl('text', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g$grobs[[i]]$grobs[[1]]$children[[j]]$children[[1]]$gp$col <- textcols[k]
+  k <- k+1
+}
+scalingfactor <- 1
+
+g2 <- ggplot_gtable(ggplot_build(p3))
+stripl <- which(grepl('strip-l', g2$layout$name))
+fills <- bgcol
+fills <- bgcol[c("CTR","PSP","PiD","CBD","CTE","AD")]
+textcols <- c("#000000","#000000","#E6E6E6","#000000","#E6E6E6","#000000")
+k <- 1
+for (i in stripl) {
+  j <- which(grepl('background', g2$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g2$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  j <- which(grepl('text', g2$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g2$grobs[[i]]$grobs[[1]]$children[[j]]$children[[1]]$gp$col <- textcols[k]
+  k <- k+1
+}
+scalingfactor <- 1
+
+miny <- -0.1
+maxy <- 0.1
+offset <- -2
+expand <- 3
+
+df7 <- df4.melt2[,c("x","site","modification","rank")]
+df7$group <- paste(df7$site,df7$modification,sep="_")
+distfactor <- round(((max(df6$x2)-offset+expand)/max(df7$rank))*100)/100
+df7 <- df7[order(df7$rank),]
+y.tmp <- c(rbind(rep(maxy,ceiling(dim(df7)[1]/2)),rep(maxy*3,ceiling(dim(df7)[1]/2))))
+df7$newy <- y.tmp[1:dim(df7)[1]]
+df7$newrank <-  seq((offset + distfactor/2),(max(df6$x2)+expand),by=distfactor)[-splitrank2]
+df8 <- df7[,c("newrank","site","modification","group","newy")]
+df7$rank <- NULL
+df7$newrank <- NULL
+df7$y <- rep(miny,dim(df7)[1])
+df8$y <- rep(maxy,dim(df8)[1])
+colnames(df8) <- colnames(df7)
+df7 <- rbind(df7,df8)
+df7.upper <- df7[df7$y==maxy,]
+df7.upper$y <- (df7.upper$y*2)+df7.upper$newy/2
+df7.upper <- rbind(df7[df7$y==maxy,],df7.upper)
+df7.lower <- df7[df7$y==miny,]
+df7.lower$y <- df7.lower$y*2
+df7.lower <- rbind(df7[df7$y==miny,],df7.lower)
+
+offset <- 0
+
+dfF7 <- dfF4.melt2[,c("x","site","modification","rank")]
+dfF7.tmp <- dfF4.melt2[,c("y","site","modification","rank")]
+colnames(dfF7.tmp) <- colnames(dfF7)
+dfF7 <- rbind(dfF7,dfF7.tmp)
+dfF7$group2 <- paste(dfF7$site,dfF7$modification,dfF7$x,sep="_")
+dfF7$group <- paste(dfF7$site,dfF7$modification,sep="_")
+dfF7 <- dfF7[!duplicated(dfF7),]
+dfF7 <- dfF7[order(dfF7$rank,dfF7$x),]
+y.tmp <- c(rbind(rep(maxy,ceiling(dim(dfF7)[1]/2)),rep(maxy*3,ceiling(dim(dfF7)[1]/2))))
+dfF7$newy <- y.tmp[1:dim(dfF7)[1]]
+dfF7$y <- rep(miny,dim(dfF7)[1])
+dfF7.lower <- dfF7
+dfF7.lower$y <- dfF7.lower$y*2
+dfF7.lower <- rbind(dfF7,dfF7.lower)
+
+dfF7 <- dfF4.melt2[,c("x","site","modification","rank")]
+dfF7$group2 <- paste(dfF7$site,dfF7$modification,dfF7$x,sep="_")
+dfF7$group <- paste(dfF7$site,dfF7$modification,sep="_")
+dfF7 <- dfF7[order(dfF7$rank,dfF7$x),]
+distfactor <- round((max(df6$x2 - offset)/max(dfF7$rank))*100)/100
+dfF7$newrank <-  seq(offset + distfactor/2,max(df6$x2),by=distfactor)[-splitrankF2]
+dfF7 <- dfF7[,c("newrank","site","modification","group","group2")]
+colnames(dfF7) <- c("x","site","modification","group","group2")
+y.tmp <- c(rbind(rep(maxy,ceiling(dim(dfF7)[1]/2)),rep(maxy*3,ceiling(dim(dfF7)[1]/2))))
+dfF7$newy <- y.tmp[1:dim(dfF7)[1]]
+dfF7$y <- rep(maxy,dim(dfF7)[1])
+dfF7.upper <- dfF7
+dfF7.upper$y <- (dfF7.upper$y*2)+dfF7.upper$newy/2
+dfF7.upper <- rbind(dfF7,dfF7.upper)
+
+dfF7 <- dfF4.melt2[,c("x","site","modification","rank")]
+dfF7$group2 <- paste(dfF7$site,dfF7$modification,dfF7$x,sep="_")
+dfF7$group <- paste(dfF7$site,dfF7$modification,sep="_")
+dfF7 <- dfF7[order(dfF7$rank,dfF7$x),]
+distfactor <- round((max(df6$x2 - offset)/max(dfF7$rank))*100)/100
+dfF7$newrank <-  seq(offset + distfactor/2,max(df6$x2),by=distfactor)[-splitrankF2]
+dfF7 <- dfF7[,c("newrank","site","modification","group","group2")]
+colnames(dfF7) <- c("x","site","modification","group","group2")
+dfF7.x <- dfF4.melt2[,c("y","site","modification","rank")]
+dfF7.x$group2 <- paste(dfF7.x$site,dfF7.x$modification,dfF7.x$y,sep="_")
+dfF7.x$group <- paste(dfF7.x$site,dfF7.x$modification,sep="_")
+dfF7.x <- dfF7.x[order(dfF7.x$rank,dfF7.x$y),]
+distfactor <- round((max(df6$x2)/max(dfF7.x$rank))*100)/100
+dfF7.x$newrank <-  seq(distfactor/2,max(df6$x2),by=distfactor)[-splitrankF2]
+dfF7.x <- dfF7.x[,c("newrank","site","modification","group","group2")]
+colnames(dfF7.x) <- c("x","site","modification","group","group2")
+y.tmp <- c(rbind(rep(maxy,ceiling(dim(dfF7)[1]/2)),rep(maxy*3,ceiling(dim(dfF7)[1]/2))))
+dfF7$newy <- y.tmp[1:dim(dfF7)[1]]
+dfF7$y <- rep(maxy,dim(dfF7)[1])
+y.tmp <- c(rbind(rep(maxy,ceiling(dim(dfF7.x)[1]/2)),rep(maxy*3,ceiling(dim(dfF7.x)[1]/2))))
+dfF7.x$newy <- y.tmp[1:dim(dfF7.x)[1]]
+dfF7.x$y <- rep(maxy,dim(dfF7.x)[1])
+
+dfF7 <- rbind(dfF7,dfF7.x)
+dfF7.x <- dfF4.melt2[,c("x","site","modification","rank")]
+dfF7.x$group2 <- paste(dfF7.x$site,dfF7.x$modification,dfF7.x$x,sep="_")
+dfF7.x$group <- paste(dfF7.x$site,dfF7.x$modification,sep="_")
+dfF7.x <- dfF7.x[order(dfF7.x$rank,dfF7.x$x),]
+y.tmp <- c(rbind(rep(maxy,ceiling(dim(dfF7.x)[1]/2)),rep(maxy*3,ceiling(dim(dfF7.x)[1]/2))))
+dfF7.x$newy <- y.tmp[1:dim(dfF7.x)[1]]
+dfF7.x$y <- rep(miny,dim(dfF7.x)[1])
+dfF7.x$rank <- NULL
+dfF7 <- rbind(dfF7,dfF7.x)
+dfF7.x <- dfF4.melt2[,c("y","site","modification","rank")]
+colnames(dfF7.x) <- c("x","site","modification","rank")
+dfF7.x$group2 <- paste(dfF7.x$site,dfF7.x$modification,dfF7.x$x,sep="_")
+dfF7.x$group <- paste(dfF7.x$site,dfF7.x$modification,sep="_")
+dfF7.x <- dfF7.x[order(dfF7.x$rank,dfF7.x$x),]
+y.tmp <- c(rbind(rep(maxy,ceiling(dim(dfF7.x)[1]/2)),rep(maxy*3,ceiling(dim(dfF7.x)[1]/2))))
+dfF7.x$newy <- y.tmp[1:dim(dfF7.x)[1]]
+dfF7.x$y <- rep(miny,dim(dfF7.x)[1])
+dfF7.x$rank <- NULL
+dfF7 <- rbind(dfF7,dfF7.x)
+
+lwd4 <- 0.5
+df7$newy <- df7$newy + (maxy-miny) + max(df6$y2)
+df7$y <- df7$y + (maxy-miny) + max(df6$y2)
+df7.upper$newy <- df7.upper$newy + (maxy-miny) + max(df6$y2)
+df7.upper$y <- df7.upper$y + (maxy-miny) + max(df6$y2)
+df7.lower$newy <- df7.lower$newy + (maxy-miny) + max(df6$y2)
+df7.lower$y <- df7.lower$y + (maxy-miny) + max(df6$y2)
+
+dfF7$newy <- dfF7$newy + (maxy-miny) + max(df6$y2)
+dfF7$y <- dfF7$y + (maxy-miny) + max(df6$y2)
+dfF7.upper$newy <- dfF7.upper$newy + (maxy-miny) + max(df6$y2)
+dfF7.upper$y <- dfF7.upper$y + (maxy-miny) + max(df6$y2)
+
+dfF7.lower$newy <- dfF7.lower$newy + (maxy-miny) + max(df6$y2)
+dfF7.lower$y <- dfF7.lower$y + (maxy-miny) + max(df6$y2)
+
+dfF7$newy <- dfF7$newy * -1
+dfF7$y <- dfF7$y * -1
+dfF7.upper$newy <- dfF7.upper$newy * -1
+dfF7.upper$y <- dfF7.upper$y * -1
+dfF7.lower$newy <- dfF7.lower$newy * -1
+dfF7.lower$y <- dfF7.lower$y * -1
+
+dfF8 <- dfF4.melt2[,c("site","modification","rank")]
+dfF8$group <- paste(dfF8$site,dfF8$modification,sep="_")
+dfF8$x1 <- rep(0,dim(dfF8)[1])
+dfF8$x2 <- rep(0,dim(dfF8)[1])
+dfF8$y1 <- rep(0,dim(dfF8)[1])
+dfF8$y2 <- rep(0,dim(dfF8)[1])
+
+dfF9 <- dfF7
+dfF9$group2 <- NULL
+dfF9 <- dfF9[!duplicated(dfF9),]
+
+for(k in 1:dim(dfF8)[1]) {
+  selected <- dfF8$group[k]
+  tmp <- dfF7.lower[dfF7.lower$group==selected,]
+  dfF8[dfF8$group==selected,]$x1 <- min(tmp$x)
+  dfF8[dfF8$group==selected,]$x2 <- max(tmp$x)
+  dfF8[dfF8$group==selected,]$y1 <- min(tmp$y)
+  dfF8[dfF8$group==selected,]$y2 <- max(tmp$y)
+}
+
+dfF7.upper$site <- unlist(lapply(dfF7.upper$site,function(x){xx <- unlist(strsplit(x,"-")); y <- x; if(xx[1]==xx[2]){ y <- xx[1] }; y}))
+
+topmargin <- 0.1
+
+dfF7.upper[dfF7.upper$modification=="TotalTau",]$site <- "Total Tau"
+dfF7.upper[dfF7.upper$modification=="Ratio",]$site <- "3R/4R Ratio"
+dfF8 <- dfF8[!dfF8$modification%in%c("TotalTau","Ratio"),]
+dfF9 <- dfF9[!dfF9$modification%in%c("TotalTau","Ratio"),]
+subsetdfF7 <- !(dfF7$modification%in%c("TotalTau","Ratio"))
+subsetdfF7.upper <- !(dfF7.upper$modification%in%c("TotalTau","Ratio"))
+subsetdfF7.lower <- !(dfF7.lower$modification%in%c("TotalTau","Ratio"))
+offset <- 10
+g_connectionPTM <- ggplot() +
+  geom_line(data=df7,aes(x=x,y=y,group=group,color=modification),lwd=lwd4) +
+  geom_line(data=df7.upper,aes(x=x,y=y,group=group,color=modification),lwd=lwd4) +
+  geom_line(data=df7.lower,aes(x=x,y=y,group=group),lwd=lwd4) +
+  geom_rect(data=dfF8,mapping=aes(xmin=x1,xmax=x2,ymin=y1,ymax=y2,fill=modification,color=modification)) +
+  geom_polygon(data=dfF9,mapping=aes(x=x,y=y,fill=modification,color=modification,group=group)) +
+  geom_line(data=subset(dfF7,subsetdfF7),aes(x=x,y=y,group=group2),color="black",lwd=lwd4) +
+  geom_line(data=subset(dfF7.upper,subsetdfF7.upper),aes(x=x,y=y,group=group2),color="black",lwd=lwd4) +
+  geom_line(data=subset(dfF7.lower,subsetdfF7.lower),aes(x=x,y=y,group=group2),color="black",lwd=lwd4) +
+  geom_rect(data=df6,mapping=aes(xmin=x1,xmax=x2,ymin=y1,ymax=y2,fill=colo),color="black") +
+  geom_text(data=df6,aes(x=(x1+(x2-x1)/2),y=(y1+(y2-y1)/2),label=name),size=textsize/4,angle=0) +
+  geom_text(data=subset(df7.upper,y>(maxy)+(maxy-miny)+max(df6$y2)),aes(x=x,y=(y+maxy/2),label=site),size=textsize/4) +
+  geom_text(data=subset(dfF7.upper,y<(miny)-(maxy-miny)-max(df6$y2)),aes(x=x,y=(y-maxy),label=site),size=textsize/4) +
+  geom_text(data=data.frame(x=c(1+offset,441-offset),y=c(0,0),term=c("N-term","C-term")),aes(x=x,y=y,label=term),size=textsize/4,angle=0) +
+  geom_text(data=data.frame(x=c(-10),y=c(0),term=c("2N4R-Tau")),aes(x=x,y=y,label=term),size=textsize/4) +
+  geom_text(data=data.frame(x=c(-10,-10),y=c(0.5,-0.5),side=c("PTMs\nCleavage","FLEXITau")),aes(x=x,y=y,label=side),size=textsize/3,angle=90) +
+  scale_x_continuous(expand=c(0.005,0.01),limits=c(-17,445)) +
+  scale_y_continuous(expand=c(0.005,0.1)) +
+  scale_fill_manual(values=c("B"="#E6E6E6","A"="#F9F9F9")) + #scale_fill_manual(values=c("B"="#677ABC","A"="#ACBBE2")) + #scale_fill_manual(values=c("B"="#5599FF","A"="#AACCFF")) +
+  scale_color_manual("PTMs", values=c(cleavage_col,col), labels=c("N-term"="N-term Cleavage","C-term"="C-term cleavage","Acetyl"="Acetylation","Phospho"="Phosphorylation","GG"="Ubiquitination","Methyl"="Methylation","Nontryptic"="Cleavage")) +
+  theme(legend.position="none",panel.grid=element_blank(),plot.margin=unit(c(0.1,0.1,0.1,topmargin),"line"),panel.background=element_blank(),axis.text=element_blank(),axis.ticks=element_blank(),axis.title=element_blank(),panel.spacing.y=unit(0,"lines"))
+
+
+m0 <- 1
+m1 <- 37
+m2 <- 7
+m3 <- 10
+n1 <- 5
+n0 <- 0
+layout <- rbind(matrix(rep(rep(NA,m1),0),ncol=m1),
+                matrix(rep(rep(1,m1),m2),ncol=m1),
+                matrix(c(rep(NA,m0),rep(2,m1-m0)),ncol=m1),
+                matrix(rep(rep(NA,m1),0),ncol=m1),
+                matrix(c(rep(rep(3,m1),m3)),ncol=m1),
+                matrix(rep(rep(4,m1),m2),ncol=m1))
+layout.tmp <- rbind(matrix(c(rep(NA,n0),rep(5,n1*((m0+m2)/2))),ncol=n1),
+                    matrix(c(rep(NA,n0),rep(6,n1*((m0+m2)/2))),ncol=n1),
+                    matrix(c(rep(NA,n0),rep(NA,n1*m2)),ncol=n1),
+                    matrix(c(rep(NA,n0),rep(NA,n1*(((m0+m2)/2)-1))),ncol=n1),
+                    matrix(c(rep(NA,n0),rep(7,n1*((m0+m2)/2))),ncol=n1))
+
+layout.tmp <- rbind(matrix(rep(c(rep(NA,1),rep(5,18),rep(6,10),rep(NA,m1-29)),4),ncol=m1,byrow=TRUE))
+
+layout <- rbind(layout,layout.tmp)
+
+p_total <- grid.arrange(grobs=list(g,p2,g_connectionPTM,g2,p2_legend,leg_legend),layout_matrix=layout)
+#ggsave(fileout,p_total,device="png",width=20,height=8,units="cm",dpi=600,scale=2)
+ggsave(fileout,p_total,device="pdf",width=8.24,height=3.3,units="in",scale=2)
+
+p_legend
+}
+
+infile <- "PP_INSOL_reformat_combine.csv"
+infileC <- "PP_INSOL_reformat_combine_C.csv"
+infileF <- "FLEXITau_INSOL_Primary_reformat_combine_reduced_normalized.csv"
+fileout <- "FigureS5.pdf"
+inpfileP <- "PP_PTM_INSOL_RF_importance.csv"
+inpfileC <- "PP_Cleavage_INSOL_RF_importance.csv"
+inpfileF <- "FLEXITau_INSOL_Primary_RF_importance.csv"
+        
+p_legend <- createFigure1(infile,infileC,infileF,fileout,0.00,5,0.01,inpfileP,inpfileC,inpfileF)
+
+
+```

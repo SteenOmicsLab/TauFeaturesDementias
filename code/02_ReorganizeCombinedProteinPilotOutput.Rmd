@@ -35,11 +35,18 @@ correctingcleavagesites <- function(x,translationtable) {
 
 ```{r setup, include=FALSE}
 # Input: the result files from ProteinPilot extracted and combined using script "Combine_ProteinPilot.Rmd" 
-infile <- "./PP_phospho_INSOL.csv"
+#infile <- "PP_phopsho_INSOL.csv"
+infile <- "PP_acetyl_INSOL.csv"
+#infile <- "PP_phopsho_SOL.csv"
+#infile <- "PP_acetyl_SOL.csv" 
 
 # Output: file locations for the matrix files for PTMs (*_reformat.csv) and Cleavages (*_reformat_C.csv)
-outfile <- "./PP_phopsho_INSOL_reformat.csv"
-outfileC <- "./PP_phopsho_INSOL_reformat_C.csv"
+#outfile <- "PP_phopsho_INSOL_reformat.csv"
+#outfileC <- "PP_phopsho_INSOL_reformat_C.csv"
+outfile <- "PP_acetyl_INSOL_reformat.csv"
+outfileC <- "PP_acetyl_INSOL_reformat_C.csv"
+#outfile <- "PP_phopsho_SOL_reformat.csv"
+#outfile <- "PP_acetyl_SOL_reformat.csv"
 
 indata <- read.csv(infile)
 samples <- unique(indata$Sample)
@@ -97,9 +104,11 @@ tmp$Neuropathology[startsWith(tmp$ID,"CTE")] <- "CTE"
 tmp$Neuropathology[startsWith(tmp$ID,"PSP")] <- "PSP"
 tmp$Neuropathology[startsWith(tmp$ID,"PiD")] <- "PiD"
 tmp$Neuropathology[startsWith(tmp$ID,"DLB")] <- "DLB"
-tmp$Neuropathology[startsWith(tmp$ID,"NPCAD")] <- "NPCAD"
-tmp$Neuropathology[startsWith(tmp$ID,"FTLDTau")] <- "FTLDTau"
-tmp$Neuropathology[startsWith(tmp$ID,"CAA")] <- "CAA"
+tmp$Neuropathology[startsWith(tmp$ID,"NPCAD")] <- "AD"
+tmp$Neuropathology[startsWith(tmp$ID,"FTLDTau_Insol_01")] <- "AD"
+tmp$Neuropathology[startsWith(tmp$ID,"FTLDTau_Insol_02")] <- "CBD"
+tmp$Neuropathology[startsWith(tmp$ID,"FTLDTau_Insol_03")] <- "PSP"
+tmp$Neuropathology[startsWith(tmp$ID,"CAA")] <- "AD"
 tmp <- tmp[,c("ID","Neuropathology",tmp.colnames)]
 tmp.meta <- as.data.frame(rbind(tmp.acc,tmp.mods))
 tmp.colnames2 <- colnames(tmp.meta)
@@ -121,7 +130,7 @@ write.table(tmp,outfile,quote=FALSE,na="",row.names=FALSE,col.names=FALSE,sep=",
 
 # lookup table to rename C-term and N-term cleavages to a consistent site, i.e. cleavage on C-term of peptide and N-term of 
 # the complement following peptide is referred to by the amino acid following the cleavage site
-cleavcorinfile <- "./uniprot_tau_isoforms2N4R-0N-1N-3R_cleavageremap.csv"
+cleavcorinfile <- "uniprot_tau_isoforms2N4R-0N-1N-3R_cleavageremap.csv"
 cleavcordata <- read.csv(cleavcorinfile,header=TRUE)
 
 indata.filterC <- indata
@@ -178,9 +187,11 @@ tmp$Neuropathology[startsWith(tmp$ID,"CTE")] <- "CTE"
 tmp$Neuropathology[startsWith(tmp$ID,"PSP")] <- "PSP"
 tmp$Neuropathology[startsWith(tmp$ID,"PiD")] <- "PiD"
 tmp$Neuropathology[startsWith(tmp$ID,"DLB")] <- "DLB"
-tmp$Neuropathology[startsWith(tmp$ID,"NPCAD")] <- "NPCAD"
-tmp$Neuropathology[startsWith(tmp$ID,"FTLDTau")] <- "FTLDTau"
-tmp$Neuropathology[startsWith(tmp$ID,"CAA")] <- "CAA"
+tmp$Neuropathology[startsWith(tmp$ID,"NPCAD")] <- "AD"
+tmp$Neuropathology[startsWith(tmp$ID,"FTLDTau_Insol_01")] <- "AD"
+tmp$Neuropathology[startsWith(tmp$ID,"FTLDTau_Insol_02")] <- "CBD"
+tmp$Neuropathology[startsWith(tmp$ID,"FTLDTau_Insol_03")] <- "PSP"
+tmp$Neuropathology[startsWith(tmp$ID,"CAA")] <- "AD"
 tmp <- tmp[,c("ID","Neuropathology",tmp.colnames)]
 tmp.meta <- as.data.frame(rbind(tmp.acc,tmp.cleav))
 tmp.colnames2 <- colnames(tmp.meta)

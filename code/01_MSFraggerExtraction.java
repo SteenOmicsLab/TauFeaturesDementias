@@ -86,7 +86,7 @@ public class MSFraggerExtraction {
 				siteidx_i = siteidx_i + pepstart;
 				
 				if(mod_name.equals("Phospho(S)") || mod_name.equals("Phospho(T)") || mod_name.equals("Phospho(Y)") || 
-						/*mod_name.equals("Acetyl") || */mod_name.equals("Acetyl(K)") || mod_name.equals("GG(K)") || mod_name.equals("GG(S)") ||
+						mod_name.equals("Acetyl(K)") || mod_name.equals("GG(K)") || mod_name.equals("GG(S)") ||
 						mod_name.equals("Methyl(K)") || mod_name.equals("Methyl(R)") || mod_name.equals("Oxidation(M)") || 
 						mod_name.equals("Deamidated(N)") || mod_name.equals("Deamidated(Q)") || mod_name.equals("Oxidation(P)") ||
 						mod_name.equals("Deamidated(R)") || mod_name.equals("Citrullination(R)")) {
@@ -108,18 +108,6 @@ public class MSFraggerExtraction {
 							siteidx_i = siteidx_i + 29;
 						}
 						siteidx_i = siteidx_i + 24;
-					} else if(accession.equals("epsilon")) {
-						siteidx_i = siteidx_i + 376;
-					} else if(accession.equals("Ex3")) {
-						if(siteidx_i>7) {
-							siteidx_i = siteidx_i + 14;
-						}
-						siteidx_i = siteidx_i + 32;
-					} else if(accession.equals("Ex5")) {
-						if(siteidx_i>7) {
-							siteidx_i = siteidx_i + 28;
-						}
-						siteidx_i = siteidx_i + 96;
 					}
 					String tmp = mod_name + "@" + siteidx_i;
 					if(pepstart>-1) {
@@ -151,18 +139,6 @@ public class MSFraggerExtraction {
 				offset = offset + 29;
 			}
 			offset = offset + 24;
-		} else if(accession.equals("epsilon")) {
-			offset = offset + 376;
-		} else if(accession.equals("Ex3")) {
-			if(siteidx_i>7) {
-				offset = offset + 14;
-			}
-			offset = offset + 32;
-		} else if(accession.equals("Ex5")) {
-			if(siteidx_i>7) {
-				offset = offset + 28;
-			}
-			offset = offset + 96;
 		}
 		return offset;
 	}
@@ -232,7 +208,7 @@ public class MSFraggerExtraction {
 			count += 1;
 			count_interest += 1;
 		}
-		if (/*protmodtable_mods.contains("Acetyl") || */protmodtable_mods.contains("Acetyl(K)")) {
+		if (protmodtable_mods.contains("Acetyl(K)")) {
 			count += 1;
 			count_interest += 1;
 		}
@@ -273,7 +249,6 @@ public class MSFraggerExtraction {
 		List<String> protmodtable_name = new ArrayList<String>();
 		List<Integer> protmodtable_idxs = new ArrayList<Integer>();
 		String modsequence = "";
-//		System.out.println(sequence + "\t" + modifications + "\t" + ProtModifications);
 		if(!sequence.equals("") && !modifications.equals("") && !ProtModifications.equals("")) {
 			modsequence = sequence;
 			String[] modlist = modifications.split(";");
@@ -341,9 +316,6 @@ public class MSFraggerExtraction {
 						String pepsite = "" + modsequence.charAt(mod_index);
 						if(mod_site.equals(pepsite)) {
 							modsequence = modsequence.substring(0, mod_index + 1) + "(" + mod_name + ")" + modsequence.substring(mod_index + 1);
-//							String protmod_mod = protmodtable_mods.remove(protmodidx);
-//							String protmod_nam = protmodtable_name.remove(protmodidx);
-//							Integer protmod_idx = protmodtable_idxs.remove(protmodidx);
 						}
 					}
 				} else {
@@ -366,14 +338,8 @@ public class MSFraggerExtraction {
 						protmodidx = protmodidx - 1;
 						if(mod_site.equals("N-term")) {
 							modsequence = "(" + mod_name + ")" + modsequence;
-//							String protmod_mod = protmodtable_mods.remove(protmodidx);
-//							String protmod_nam = protmodtable_name.remove(protmodidx);
-//							Integer protmod_idx = protmodtable_idxs.remove(protmodidx);
 						} else if(mod_site.equals("C-term")) {
 							modsequence = modsequence + "(" + mod_name + ")";
-//							String protmod_mod = protmodtable_mods.remove(protmodidx);
-//							String protmod_nam = protmodtable_name.remove(protmodidx);
-//							Integer protmod_idx = protmodtable_idxs.remove(protmodidx);
 						}
 					}
 				}
@@ -387,7 +353,7 @@ public class MSFraggerExtraction {
 	
 
 	public static void main(String[] args) {
-		String taufile = "D:/Work/Tau/uniprot_tau_isoforms2N4R-0N-1N-3R.fasta";//args[0]; // "D:/Data/GFAP/AlignmentData/AlignmentDBs/uniprot_tau_isoforms2N4R-0N-1N-3R.fasta";
+		String taufile = args[0];
     	List<String> headers_ordered = new ArrayList<String>();
     	Map<String, String> taumap = new HashMap<String,String>();
     	
@@ -417,20 +383,12 @@ public class MSFraggerExtraction {
     		// TODO auto-generated catch block
     		e.printStackTrace();
     	}
-    	
-//    	System.out.println(headers_ordered);
-//    	System.out.println(taumap);
-//    	System.out.println(taumap.get(headers_ordered.get(0)) + "\n" + "AKTDHGAEIVYK");
-//    	System.out.println(taumap.get(headers_ordered.get(0)).contains("AKTDHGAEIVYK"));
-//    	System.out.println(taumap.get(headers_ordered.get(0)).indexOf("AKTDHGAEIVYK"));
-    	
-    	
-        String filetablelocation = "D:/Work/Tau/00_FDR_files_MSFragger_WH.txt";//args[1]; // "D:/Data/Simon_HMW_paper/Addition_Mascot/00_FDR_files_LMW.txt";
-    	String path = "D:/Work/Tau/";//args[2]; // "D:/Data/Simon_HMW_paper/Addition_Mascot/";
-    	String outputfile = "D:/Work/Tau/MSFragger_WH_Insol2_wInt_summary_Int.csv";//args[3]; // "D:/Data/Simon_HMW_paper/Addition_Mascot/MASCOT-LMW_cutoff_0-05FDR_TAU.csv";
-//    	double threshold = 0.01;//Double.parseDouble(args[4]); //1; //
-    	String id = "P10636";//args[4]; // "P10636"; 
-//    	int fdrtype = (int)Double.parseDouble(args[6]); // 17 == global FDR; 18 == local FDR
+
+        String filetablelocation = args[1];
+    	String path = args[2];
+    	String outputfile = args[3];
+    	String id = args[4];
+    	int fdrtype = (int)Double.parseDouble(args[6]); // 17 == global FDR; 18 == local FDR
     	String sep = ",";
     	List<String> files = new ArrayList<String>();
     	
@@ -450,31 +408,12 @@ public class MSFraggerExtraction {
     	Writer writer;
 		try {
 			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputfile)));
-//			writer.write("Groupfile" + sep + "FDR" + sep + "FDR Threshold" + sep + "Conf Threshold\n");
 			writer.write("Sample" + sep + "Accessions" + sep + "Conf" + sep + "Sequence" + sep + "Modificaitons" + sep + "CorrectedModifications" + sep + "ProteinModifications" + sep + "ModifiedSequence" + sep + "Cleavages" + sep + "CleavageSites" + sep + "dMass" + sep + "Obs MW" + sep + "Obs m/z" + sep + "Theor MW" + sep + "Theor m/z" + sep + "Theor z" + sep + "Intensity" + "\n");
 			
 			for(String file : files) {
 		    	
 		    	String fileLocation = path + File.separatorChar + file;
-//		    	String[] filesplit = file.split("/");
-//		    	String newfile = filesplit[filesplit.length-1];
-//		    	String[] newfilesplit = newfile.split("_");
-//		    	String newfilename = newfilesplit[0] + "_" + newfilesplit[2];
-		    	
-//		    	String group = newfilesplit[0];
-//		    	String region = newfilesplit[1];
-//		    	String sample = newfilesplit[2];
-//		    	String fraction = newfilesplit[3];
-//		    	if(group.equals("CTRL")) {
-//		    		group = "Control";
-//		    	}
-//		    	if(region.equals("PF")) {
-//		    		region = "Prefrontal";
-//		    	}
-		    	
-//		    	String newfilename = newfile;
-//		    	String newfilename = newfilesplit[2] + "_" + newfilesplit[4];
-		    	
+
 		    	Map<String,String> modlookup = new HashMap<String,String>();
 		    	modlookup.put("15.9949","Oxidation");
 		    	modlookup.put("42.0106","Acetyl");
@@ -549,42 +488,6 @@ public class MSFraggerExtraction {
 											nterm_cleav = checkNtermCleavage(taumap.get(headers_ordered.get(3)),pepsumlinesplit[pep_seq_idx],accession);
 											cterm_cleav = checkCtermCleavage(taumap.get(headers_ordered.get(3)),pepsumlinesplit[pep_seq_idx],accession);
 										}
-									} else if(headers_ordered.size()==2) {
-										if(taumap.get(headers_ordered.get(0)).contains(pepsumlinesplit[pep_seq_idx])) {
-											accession = "alpha";
-											index = taumap.get(headers_ordered.get(0)).indexOf(pepsumlinesplit[pep_seq_idx]);
-											nterm_cleav = checkNtermCleavage(taumap.get(headers_ordered.get(0)),pepsumlinesplit[pep_seq_idx],accession);
-											cterm_cleav = checkCtermCleavage(taumap.get(headers_ordered.get(0)),pepsumlinesplit[pep_seq_idx],accession);
-										} else if(taumap.get(headers_ordered.get(1)).contains(pepsumlinesplit[pep_seq_idx])) {
-											accession = "epsilon";
-											index = taumap.get(headers_ordered.get(1)).indexOf(pepsumlinesplit[pep_seq_idx]);
-											nterm_cleav = checkNtermCleavage(taumap.get(headers_ordered.get(1)),pepsumlinesplit[pep_seq_idx],accession);
-											cterm_cleav = checkCtermCleavage(taumap.get(headers_ordered.get(1)),pepsumlinesplit[pep_seq_idx],accession);
-										}
-									} else if(headers_ordered.size()==3) {
-										if(taumap.get(headers_ordered.get(0)).contains(pepsumlinesplit[pep_seq_idx])) {
-											accession = "Can";
-											index = taumap.get(headers_ordered.get(0)).indexOf(pepsumlinesplit[pep_seq_idx]);
-											nterm_cleav = checkNtermCleavage(taumap.get(headers_ordered.get(0)),pepsumlinesplit[pep_seq_idx],accession);
-											cterm_cleav = checkCtermCleavage(taumap.get(headers_ordered.get(0)),pepsumlinesplit[pep_seq_idx],accession);
-										} else if(taumap.get(headers_ordered.get(1)).contains(pepsumlinesplit[pep_seq_idx])) {
-											accession = "Ex5";
-											index = taumap.get(headers_ordered.get(1)).indexOf(pepsumlinesplit[pep_seq_idx]);
-											nterm_cleav = checkNtermCleavage(taumap.get(headers_ordered.get(1)),pepsumlinesplit[pep_seq_idx],accession);
-											cterm_cleav = checkCtermCleavage(taumap.get(headers_ordered.get(1)),pepsumlinesplit[pep_seq_idx],accession);
-										} else if(taumap.get(headers_ordered.get(2)).contains(pepsumlinesplit[pep_seq_idx])) {
-											accession = "Ex3";
-											index = taumap.get(headers_ordered.get(2)).indexOf(pepsumlinesplit[pep_seq_idx]);
-											nterm_cleav = checkNtermCleavage(taumap.get(headers_ordered.get(2)),pepsumlinesplit[pep_seq_idx],accession);
-											cterm_cleav = checkCtermCleavage(taumap.get(headers_ordered.get(2)),pepsumlinesplit[pep_seq_idx],accession);
-										}
-									} else if(headers_ordered.size()==1) {
-										if(taumap.get(headers_ordered.get(0)).contains(pepsumlinesplit[pep_seq_idx])) {
-											accession = "PADI2";
-											index = taumap.get(headers_ordered.get(0)).indexOf(pepsumlinesplit[pep_seq_idx]);
-											nterm_cleav = checkNtermCleavage(taumap.get(headers_ordered.get(0)),pepsumlinesplit[pep_seq_idx],accession);
-											cterm_cleav = checkCtermCleavage(taumap.get(headers_ordered.get(0)),pepsumlinesplit[pep_seq_idx],accession);
-										}
 									}
 									String cleavage = "";
 									if(!nterm_cleav.equals("") && !cterm_cleav.equals("")) {
@@ -597,9 +500,7 @@ public class MSFraggerExtraction {
 
 									String reformmodsstring = reformmods(pepsumlinesplit[pep_mod_seq_idx],modlookup);
 									for(int k = 0; k < exp_idxs.size(); ++k) {
-									if(pepsumlinesplit[pep_seq_idx].equals("HVPGGGSVQIVYKPVDLSKVTSK")) {
-										boolean test1 = true;
-									}
+
 										if(((checkmods(reformmodsstring)==true) || reformmodsstring.equals("")) && !accession.equals("")) {
 											writer.write(exp_names.get(k) + sep + accession + sep + "" + sep + pepsumlinesplit[pep_seq_idx] + sep + reformmodsstring + sep + correctingMods(reformmodsstring, index, pepsumlinesplit[pep_seq_idx], accession) + sep);
 											writer.write("" + sep + addPTMsequences(pepsumlinesplit[pep_seq_idx], reformmodsstring, reformmodsstring) + sep);
@@ -613,7 +514,6 @@ public class MSFraggerExtraction {
 						}
 				}
 				pepsumreader.close();
-//				writer.write(newfile + sep + FDR + sep + threshold + sep + conf + "\n");
 	    	}
 			writer.close();
 		} catch (IOException e) {

@@ -158,8 +158,8 @@ readjust_reverse_all <- function(df_tmp,s,min_v,nophospho=FALSE) {
   df_tmp
 }
 
-createFigure1 <- function(infile,infileC,fileout,min_value,threshold,threshold2) {
-
+createFigure <- function(infile,infileC,fileout,min_value,threshold,threshold2) {
+  
 indata <- read.csv(infile,header=FALSE)
 indataC <- read.csv(infileC,header=FALSE)
 
@@ -178,8 +178,6 @@ colnames(indata) <- paste("V",1:dim(indata)[2],sep="")
 colnames(indataC) <- paste("V",1:dim(indataC)[2],sep="")
 
 columnnames <- colnames(as.matrix(indata[-c(1,2),-c(1,2)]))
-
-
 columnnamesC <- colnames(as.matrix(indataC[-c(1,2),-c(1,2)]))
 
 indata <- indata[,!((indata[2,]=="")&(indata[1,]!=""))]
@@ -324,7 +322,7 @@ indataC2 <- indataC2[-1,]
 
 indata2$AD <- as.numeric(indata2$AD)
 indata2$CBD <- as.numeric(indata2$CBD)
-indata2$CTR <- as.numeric(indata2$CTR)
+indata2$CTRL <- as.numeric(indata2$CTRL)
 indata2$PiD <- as.numeric(indata2$PiD)
 indata2$PSP <- as.numeric(indata2$PSP)
 indata2$DLB <- as.numeric(indata2$DLB)
@@ -333,7 +331,7 @@ indata2$fAD <- as.numeric(indata2$fAD)
 
 indataC2$AD <- as.numeric(indataC2$AD)
 indataC2$CBD <- as.numeric(indataC2$CBD)
-indataC2$CTR <- as.numeric(indataC2$CTR)
+indataC2$CTRL <- as.numeric(indataC2$CTRL)
 indataC2$PiD <- as.numeric(indataC2$PiD)
 indataC2$PSP <- as.numeric(indataC2$PSP)
 indataC2$DLB <- as.numeric(indataC2$DLB)
@@ -342,6 +340,10 @@ indataC2$fAD <- as.numeric(indataC2$fAD)
 
 indata2 <- indata2[,-c(5)]
 indataC2 <- indataC2[,-c(5)]
+
+colnames(indata2) <- c("modification","site","AA","seg.po","AD","CBD","CTE","CTR","DLB","fAD","PiD","PSP")
+colnames(indataC2) <- c("modification","site","seg.po","seg.po.2","AD","CBD","CTE","CTR","DLB","fAD","PiD","PSP")
+
 
 indata2 <- indata2[apply(indata2[,c(5:12)],1,sum)>0.0,]
 indata2$seg.po <- as.numeric(indata2$seg.po)
@@ -1082,8 +1084,8 @@ ggsave(fileout,p_total,device="pdf",width=8.27,height=9.06,units="in",scale=2)
 ```
 
 ```{r,include=FALSE}
-infile <- "./PP_INSOL_reformat_combine.csv"
-infileC <- "./PP_INSOL_reformat_combine_C_collmean.csv"
-fileout <- "./Figure 2.pdf"
-createFigure1(infile,infileC,fileout,0.00,10,0.01)
+infile <- "PP_INSOL_reformat_combine.csv"
+infileC <- "PP_INSOL_reformat_combine_C_collmean.csv"
+fileout <- "Figure2.pdf"
+createFigure(infile,infileC,fileout,0.00,10,0.01)
 ```

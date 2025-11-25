@@ -1,0 +1,134 @@
+---
+title: "Data Preprocessing for classification"
+author: "Shaojun Tang"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r setup, include=FALSE}
+###################################################
+# step 1, prepare training set and test data set
+###################################################
+
+# [1] code to read training sample file 1 :  [trainset='FLEXITau_INSOL_Primary_reformat_combine_reduced_normalized.csv'] [testset='FLEXITau_INSOL_Secondary.csv']
+{
+  
+  # [part 1] read testset
+  {
+    # [data 6-4] Secondary held-back test data - 03-25-2024, (first testset read data as normal （training set), then reassign the data as second independent testset)
+    tau.ptm.newdata.raw = read.csv(paste0(default.parent.folder, 'FLEXITau_INSOL_Secondary.csv'))
+    
+    tau.ptm.newdata.raw = tau.ptm.newdata.raw[-c(1,2,3),]
+    tau.ptm.newdata.raw$ID = gsub("Insol", "", tau.ptm.newdata.raw$ID)
+    tau.ptm.newdata.raw[,3:ncol(tau.ptm.newdata.raw)] <- sapply(tau.ptm.newdata.raw[,3:ncol(tau.ptm.newdata.raw)], as.numeric)
+    diseases.of.interest = c("AD", "CBD", "CTE", "CTR", "PiD", "PSP", "DLB")
+    
+    tau.ptm.newdata.testset = tau.ptm.newdata.raw[which(tau.ptm.newdata.raw$Neuropathology%in%diseases.of.interest),]
+  }
+  
+  # [part 2]  trainset
+  {
+    tau.ptm.newdata.raw = read.csv(paste0(default.parent.folder, 'FLEXITau_INSOL_Primary_reformat_combine_reduced_normalized.csv'))
+    
+    tau.ptm.newdata.raw = tau.ptm.newdata.raw[-c(1,2,3),]
+    tau.ptm.newdata.raw$ID = gsub("Insol", "", tau.ptm.newdata.raw$ID)
+    tau.ptm.newdata.raw[,3:ncol(tau.ptm.newdata.raw)] <- sapply(tau.ptm.newdata.raw[,3:ncol(tau.ptm.newdata.raw)], as.numeric)
+    diseases.of.interest = c("AD", "CBD", "CTE", "CTR", "CTRL" , "PiD", "PSP", "DLB")
+    
+    # change fAD, NPCAD, FLEXITAU to AD [[ Dec 2 - 20211202]]
+    tau.ptm.newdata.raw$Neuropathology[which(tau.ptm.newdata.raw$Neuropathology%in%c('CAA','fAD','NPCAD'))]='AD'
+    tau.ptm.newdata.raw=tau.ptm.newdata.raw[-which(tau.ptm.newdata.raw$Neuropathology%in%c('FTLDTau','DLB')),]
+    tau.ptm.newdata         = tau.ptm.newdata.raw[ which(tau.ptm.newdata.raw$Neuropathology%in%diseases.of.interest),]
+    continuous.value.bool=FALSE
+    
+    # ############ added on May 13, 2024, remove NA values as input file may have NA values
+    tau.ptm.newdata <- tau.ptm.newdata %>% select_if(~ !any(is.na(.)))
+    tau.ptm.newdata <- tau.ptm.newdata[order(tau.ptm.newdata[,2]), ]
+    
+  }
+  
+
+  # [part 3] : give the folder name and figure name prefix
+  {
+    REF.file.name = "PP_PTM_INSOL_RF"      # new column sum
+    figures.folder.name ="PTM_classification"
+  }
+  
+  # [part 4] : only for some data 
+  # for validation data using secondary dataset, where some variables such as 'RisoformRatio' are missing, the formal analysis in step 3 will fail
+  {
+    tau.ptm.newdata = tau.ptm.newdata[, which(colnames(tau.ptm.newdata)%in%colnames(tau.ptm.newdata.testset))]
+  }
+  
+  
+}
+
+
+
+# [2] code to read training sample file 2 : [trainset='PP_INSOL_reformat_combine_reduced_C.csv'] [testset='FLEXITau_INSOL_Secondary.csv']
+
+{
+  
+  # [part 1] read testset
+  {
+    # [data 6-4] Secondary held-back test data - 03-25-2024, (first testset read data as normal （training set), then reassign the data as independent testset)
+    tau.ptm.newdata.raw = read.csv(paste0(default.parent.folder, 'FLEXITau_INSOL_Secondary.csv'))
+    
+    tau.ptm.newdata.raw = tau.ptm.newdata.raw[-c(1,2,3),]
+    tau.ptm.newdata.raw$ID = gsub("Insol", "", tau.ptm.newdata.raw$ID)
+    tau.ptm.newdata.raw[,3:ncol(tau.ptm.newdata.raw)] <- sapply(tau.ptm.newdata.raw[,3:ncol(tau.ptm.newdata.raw)], as.numeric)
+    diseases.of.interest = c("AD", "CBD", "CTE", "CTR", "PiD", "PSP", "DLB")
+    
+    tau.ptm.newdata.testset = tau.ptm.newdata.raw[which(tau.ptm.newdata.raw$Neuropathology%in%diseases.of.interest),]
+  }
+  
+  # [part 2] read trainset
+  {
+   
+    # [data 6-21] Cleavage data - 02-24-2024, reuse code above
+    tau.ptm.newdata.raw = read.csv(paste0(default.parent.folder, 'PP_INSOL_reformat_combine_reduced_C.csv'))
+    
+    tau.ptm.newdata.raw = tau.ptm.newdata.raw[-c(1,2,3),]
+    tau.ptm.newdata.raw$ID = gsub("Insol", "", tau.ptm.newdata.raw$ID)
+    tau.ptm.newdata.raw[,3:ncol(tau.ptm.newdata.raw)] <- sapply(tau.ptm.newdata.raw[,3:ncol(tau.ptm.newdata.raw)], as.numeric)
+    diseases.of.interest = c("AD", "CBD", "CTE", "CTR", "CTRL" , "PiD", "PSP", "DLB")
+    
+    if(length(which((tau.ptm.newdata.raw$Neuropathology%in%diseases.of.interest)))>0){
+      tau.ptm.newdata.testset = tau.ptm.newdata.raw[-which(tau.ptm.newdata.raw$Neuropathology%in%diseases.of.interest),]
+    }
+    
+    # change fAD, NPCAD, FLEXITAU to AD [[ Dec 2 - 20211202]]
+    if(length(which(tau.ptm.newdata.raw$Neuropathology%in%c('CAA','fAD','NPCAD')))>0){
+      tau.ptm.newdata.raw$Neuropathology[which(tau.ptm.newdata.raw$Neuropathology%in%c('CAA','fAD','NPCAD'))]='AD'
+    }
+    if(length(which(tau.ptm.newdata.raw$Neuropathology%in%c('FTLDTau','DLB')))>0){
+      tau.ptm.newdata.raw=tau.ptm.newdata.raw[-which(tau.ptm.newdata.raw$Neuropathology%in%c('FTLDTau','DLB')),]
+    }
+    tau.ptm.newdata         = tau.ptm.newdata.raw[ which(tau.ptm.newdata.raw$Neuropathology%in%diseases.of.interest),]
+    continuous.value.bool=FALSE
+    
+    
+    # ############ added on May 13, 2024, remove NA values as input file may have NA values
+    tau.ptm.newdata <- tau.ptm.newdata %>% select_if(~ !any(is.na(.)))
+    tau.ptm.newdata <- tau.ptm.newdata[order(tau.ptm.newdata[,2]), ]
+   
+  }
+    
+ 
+  {
+      # 06212024 file = PP_INSOL_reformat_combine_reduced_C.csv
+    REF.file.name = "PP_Cleavage_INSOL_RF"      # new column sum
+    figures.folder.name ="Cleavage_classification"
+  }
+    
+    
+  # [part 4] : only for some data 
+  # for validation data using secondary dataset, where some variables such as 'RisoformRatio' are missing, the formal analysis in step 3 will fail
+  {
+    tau.ptm.newdata = tau.ptm.newdata[, which(colnames(tau.ptm.newdata)%in%colnames(tau.ptm.newdata.testset))]
+  }
+  
+    
+}
+```
+

@@ -1,0 +1,75 @@
+---
+title: "TSNE dimensionality mapping to 2D space from top most features of RF classifiers"
+author: "Christoph N. Schlaffner"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r, include=FALSE}
+library(ggplot2)
+library(Rtsne)
+
+plot.umap.tsne <- function(df,title.txt){
+  
+  library(ggrepel)
+  ggplot(df, aes(x, y, colour = disease)) +
+    geom_point(size=3)+
+    geom_text(aes(label=label.id),hjust=0, vjust=0, size=3) +
+    theme(plot.title=element_text(size=30, hjust=0.5, face="bold", colour="maroon", vjust=-1),
+          plot.subtitle=element_text(size=25, hjust=0.5, face="italic", color="black"),
+          axis.text.x = element_text(color = "grey20", size = 20, angle = 0, hjust = .5, vjust = .5, face = "plain"),
+          axis.text.y = element_text(color = "grey20", size = 20, angle = 0, hjust = 1, vjust = 0, face = "plain"),  
+          axis.title.x = element_text(color = "grey20", size = 20, angle = 0, hjust = .5, vjust = 0, face = "plain"),
+          axis.title.y = element_text(color = "grey20", size = 20, angle = 90, hjust = .5, vjust = .5, face = "plain"))
+  
+}
+
+
+infile <- "PP_PTM_INSOL_reformat_combine_reduced_RFfilter.csv"
+outfile <- "PP_PTM_INSOL_RFfilter_5Features_TSNE2.csv"
+#infile <- "FLEXITau_INSOL_Primary_reformat_combine_reduced_RFfilter.csv"
+#outfile <- "FLEXITau_INSOL_Primary_5Features_TSNE.csv"
+#infile <- "PP_Cleavage_INSOL_reformat_combine_reduced_RFfilter.csv"
+#outfile <- "PP_Cleavage_INSOL_RFfilter_5Features_TSNE.csv"
+indata <- read.table(infile,header=FALSE,sep=",")
+
+colnames(indata) <- indata[1,]
+rownames(indata) <- c("Name","Type","Site","Isoform",indata[-c(1,2,3,4),1])
+indata.headers <- indata[c(1,2,3,4),]
+indata <- indata[-c(1,2,3,4),]
+
+#rownames(indata) <- c("Peptide","Site","Name",indata[-c(1,2,3),1])
+#indata.headers <- indata[c(1,2,3),]
+#indata <- indata[-c(1,2,3),]
+
+# Cleavage top 5
+# ofinterest <- which(indata.headers[3,]%in%c("M11","G109","S113","Q244","A246","V300","P301","G303","G304","S305","Q307","V309","P312","G326","N327","H329","S356","L357","D358","E372","D387","T403"))
+
+# PTM top 5
+ofinterest <- which(indata.headers[1,]%in%c("Phospho(T)@205_2N4R", "Phospho(S)@208_2N4R","Citrullination(R)@209_2N4R", "Citrullination(R)@211_2N4R", "Phospho(T)@217_2N4R", "Phospho(T)@231_2N4R","Citrullination(R)@242_2N4R", "Phospho(S)@262_2N4R", "Phospho(T)@263_2N4R", "GG(K)@267_2N4R","Acetyl(K)@281_2N4R", "GG(K)@290_2N4R", "Acetyl(K)@311_2N4R", "GG(K)@311_2N4R", "GG(K)@317_2N4R","GG(K)@321_2N4R","Acetyl(K)@331_2N4R", "GG(K)@340_2N4R","Phospho(S)@356_2N4R", "Acetyl(K)@369_2N4R", "Acetyl(K)@370_2N4R", "GG(K)@370_2N4R","Phospho(S)@396_2N4R", "Phospho(S)@404_2N4R"))
+
+
+# FLEXITau top 5
+#ofinterest <- which(indata.headers[1,]%in%c("TotalTau","RisoformRatio","STPTAEDVTAPLVDEGAPGK", "GAAPPGQK", "TPPSSGEPPK", "SGYSSPGSPGTPGSR", "SRTPSLPTPPTREPK","IGSTENLK", "VQIINKK", "KLDLSNVQSK", "IGSLDNITHVPGGGNKK", "AKTDHGAEIVYK", "SPVVSGDTSPR"))
+
+indata <- indata[,c(1,2,ofinterest)]
+
+indata.columns <- indata[,c(1,2)]
+indata <- indata[,-c(1,2)]
+
+for(i in 1:dim(indata)[2]) {
+  indata[,i] <- as.numeric(indata[,i])
+}
+indata[,1] <- indata[,1]/max(indata[,1])
+
+set.seed(100)
+{
+  dat <- indata
+  tsne <- Rtsne(dat, normalize=FALSE, check_duplicates = FALSE)
+  df <- data.frame(x = tsne$Y[,1],
+                   y = tsne$Y[,2],
+                   label.id   = indata.columns$ID,
+                   disease = indata.columns$Neuropathology)
+  write.table(df,file=outfile,sep=",")
+}
+```

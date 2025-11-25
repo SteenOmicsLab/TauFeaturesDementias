@@ -1,5 +1,5 @@
 ---
-title: "Figure 1 Panel E PTM cumulative overview (and Supplementary Figure S3)"
+title: "Figure 1 Panel E PTM cumulative overview (and Supplementary Figure S1 Panel B)"
 author: "Christoph N. Schlaffner"
 output:
   pdf_document: default
@@ -42,16 +42,16 @@ splitPTMs <- function(x) {
 
 ```{r, include=FALSE}
 # Input INSOLUBLE: PTM matrix for reduced individual PTM sites from '.Rmd'
-#infile <- "./PP_INSOL_reformat_combine_reduced.csv"
-#helperfile <- "./PP_INSOL_reformat_combine_reduced_help.csv"
+#infile <- "PP_INSOL_reformat_combine_reduced.csv"
+#helperfile <- "PP_INSOL_reformat_combine_reduced_help.csv"
 # Output INSOLUBLE: Figure 1 Panel E in PNG format
-#outfile <- "./Figure1PanelE.png"
+#outfile <- "Figure1PanelE.pdf"
 
 # Input SOLUBLE: PTM matrix for reduced individual PTM sites from '.Rmd'
-infile <- "./PP_SOL_reformat_combine_reduced.csv"
-helperfile <- "./PP_SOL_reformat_combine_reduced_help.csv"
-# Output SOLUBLE: Figure 1 Panel E in PNG format
-outfile <- "./FigureS3.png"
+infile <- "PP_SOL_reformat_combine_reduced.csv"
+helperfile <- "PP_SOL_reformat_combine_reduced_help.csv"
+# Output SOLUBLE: Figure S1 Panel B in PNG format
+outfile <- "FigureS1PanelB.pdf"
 
 indata <- read.csv(infile,header=FALSE)
 # Filter any modification not to be shown in overview and isoform information
@@ -117,7 +117,7 @@ indata2$DLB <- as.numeric(indata2$DLB)
 indata2$PiD <- as.numeric(indata2$PiD)
 indata2$PSP <- as.numeric(indata2$PSP)
 # fAD only for INSOLUBLE
-#indata2$fAD <- as.numeric(indata2$fAD)
+indata2$fAD <- as.numeric(indata2$fAD)
 
 indata2 <- indata2[,-c(5)]
 
@@ -244,10 +244,10 @@ g1 <- ggplot() +
   annotate("text",x=10+offset-pdfcorrect,y=0.285-align*2,label="Citrullination",colour=col["Citrullination"],hjust=0,size=textsize-1,fontface="bold")
   
 
-# print plot to output device 'png'
+# print plot to output device 'pdf'
 layout <- rbind(c(1))
 diseaseplotsPTM2 <- list() 
 diseaseplotsPTM2[[1]] <- g1
 p_total <- grid.arrange(grobs=diseaseplotsPTM2,layout_matrix=layout)
-ggsave(outfile,p_total,device="png",width=8,height=2.3,units="in",scale=2)
+ggsave(outfile,p_total,device="pdf",width=8,height=2.3,units="in",scale=2)
 ```

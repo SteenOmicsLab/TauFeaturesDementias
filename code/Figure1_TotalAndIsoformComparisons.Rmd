@@ -6,6 +6,7 @@ output:
   html_document: default
 ---
 ```{r, include=FALSE}
+
 options(stringsAsFactors = FALSE)
 library(reshape2)
 library(ggplot2)
@@ -28,8 +29,8 @@ filter <- function(data,disease,threshold,name,direction) {
 }
 
 
-math_format2 <- function (expr = 10^.x, expr2 = .x, format = force) 
-{
+math_format2 <- function (expr = 10^.x, expr2 = .x, format = force) {
+  
   .x <- NULL
   quoted <- substitute(expr)
   subs <- function(x) {
@@ -71,11 +72,12 @@ pvalsize <- pvalsize.pval
 titlesize <- 20
 axistitlesize <- 16
 axistextsize <- 16
-outfilename <- "C:/Users/Teaching/Desktop/BCH/Cell_September2025/Code-Data/outputfigure/Figure1_PanelsBCD_new8_2.pdf"
 
-file_FLEXI.absolute <- "C:/Users/Teaching/Desktop/BCH/Cell_September2025/Code-Data/FLEXITau_isoform_absolutequant.csv"
-file_FLEXI.tims.R <- "C:/Users/Teaching/Desktop/BCH/Cell_September2025/Code-Data/timsTOF_4Rstartincl_20240807_FLEXIpeptides.csv"
-file_FLEXI <- "C:/Users/Teaching/Desktop/BCH/Cell_September2025/Code-Data/FLEXITau_Ratio_regionratio-collapse_normalized_filtered7.csv"
+outfilename <- "Figure1PanelsBCD.pdf"
+
+file_FLEXI.absolute <- "FLEXITau_INSOL_isoform_absolutequant.csv"
+file_FLEXI.tims.R <- "MSFragger_INSOL_3R-4R_FLEXITauPeptides.csv"
+file_FLEXI <- "FLEXITau_INSOL_Primary_reformat_combine_reduced.csv"
 
 data_FLEXI.absolute <- read.table(file_FLEXI.absolute,sep=",",header=FALSE)
 data_FLEXI.absolute <- data_FLEXI.absolute[(data_FLEXI.absolute$V3!=""),]
@@ -106,8 +108,8 @@ plot_total_insoluble <- ggplot(data_FLEXI.total,aes(x=Neuropathology,y=TotalTau)
   ggtitle(" \nTotal Tau") +
   scale_fill_manual(values=anno_colors$NPDX1) +
   scale_y_log10(sec.axis=dup_axis(label=NULL,name=""),limits=c(NA,100000),breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format2(10^.x)),name="absolute amount of\ninsoluble Tau [fmol/mg]") + 
-  annotation_logticks(side="l",short=unit(0.15,"cm"),mid=unit(0.15,"cm"),long=unit(0.25,"cm"),size=linesize) +
-  annotation_logticks(side="r",short=unit(0.15,"cm"),mid=unit(0.15,"cm"),long=unit(0.25,"cm"),size=linesize) +
+  annotation_logticks(side="l",short=unit(0.15,"cm"),mid=unit(0.15,"cm"),long=unit(0.25,"cm"),linewidth=linesize) +
+  annotation_logticks(side="r",short=unit(0.15,"cm"),mid=unit(0.15,"cm"),long=unit(0.25,"cm"),linewidth=linesize) +
   stat_pvalue_manual(totaltau_insoluble_ttest,label=p.label,y.position=heights.total,hide.ns=TRUE,tip.length=0,bracket.size=linesize,label.size=pvalsize) +
   theme_minimal() +
   theme(plot.title=element_text(hjust=0.5,size=titlesize,face="bold"),axis.line=element_line(size=linesize),title=element_text(size=titlesize,face="bold"),axis.ticks=element_line(size=linesize+0.1),axis.title.x=element_blank(),axis.text=element_text(size=axistextsize,face="bold",color="black"),axis.text.x=element_text(angle=90,hjust=1,vjust=0.5),axis.title.y=element_text(size=axistitlesize,face="bold"),legend.position="none")
@@ -136,7 +138,6 @@ data_FLEXI.iso$Neuropathology <- factor(data_FLEXI.iso$Neuropathology,levels=c("
 
 data_FLEXI.iso.N <- data_FLEXI.iso[data_FLEXI.iso$Isoform%in%c("0N","1N","2N"),]
 data_FLEXI.iso.N$Isoform <- factor(data_FLEXI.iso.N$Isoform,levels=c("2N","1N","0N"))
-#data_FLEXI.iso.N <- filter(data_FLEXI.iso.N,"PiD",0.4,"LHratio","higher")
 data_FLEXI.iso.N.remove <- aggregate(data_FLEXI.iso.N$value,by=list(data_FLEXI.iso.N$Neuropathology,data_FLEXI.iso.N$Isoform),function(x){sum(is.na(x))+sum(!is.na(x))})
 data_FLEXI.iso.N.remove <- data_FLEXI.iso.N.remove[data_FLEXI.iso.N.remove$x<2,]
 data_FLEXI.iso.N.test <- data_FLEXI.iso.N
@@ -150,7 +151,6 @@ for(i in 1:dim(data_FLEXI.iso.N.remove)[1]) {
 
 data_FLEXI.iso.N.test$Neuropathology <- factor(data_FLEXI.iso.N.test$Neuropathology,levels=c("CTR","DLB","PSP","PiD","CBD","CTE","fAD","AD"))
 data_FLEXI.iso.N.test$Isoform <- factor(data_FLEXI.iso.N.test$Isoform,levels=c("2N","1N","0N"))
-#data_FLEXI.iso.N <- data_FLEXI.iso.N[data_FLEXI.iso.N$Neuropathology!="CAA",]
 Nisoform_insoluble_ttest <- compare_means(value~Isoform,data=data_FLEXI.iso.N.test,group.by=c("Neuropathology"),method=testmethod,p.adjust.method=pvaluecorrection)
 data_FLEXI.iso.N.mean <- aggregate(data_FLEXI.iso.N$value,by=list(data_FLEXI.iso.N$Neuropathology,data_FLEXI.iso.N$Isoform),na.action=na.pass,mean,na.rm=TRUE)
 colnames(data_FLEXI.iso.N.mean) <- c("Neuropathology","Isoform","mean")
@@ -182,12 +182,10 @@ logheights.N <- c(-0.3,-0.3,-0.3,-0.7,-0.3,-0.3,-0.3)
 logheights.N <- c(1.6,2.2,1.9,1.6,1.3,1.9,1.6,1.6,1.9,1.3,1.3,1.6,1.3)+0.1
 regheights.N <- c(0.01,0.01,0.01,0.35,0.01,0.01,0.01)
 
-#heights.N <- regheights.N
-#ylabel.N <- "ratio [L/H]"
+
 ylabel.N <- "absolute amount of\nisoform peptide [fmol/mg]"
-heights.N <- logheights.N#logheights.N
-#data_FLEXI.iso.N$value <- log10(data_FLEXI.iso.N$value)
-#ylabel.N <- "log2 normalized ratio [L/H]"
+heights.N <- logheights.N
+
 
 logticks_left <- annotation_logticks(sides='l',short=unit(0.15,"cm"),mid=unit(0.15,"cm"),long=unit(0.25,"cm"),size=linesize)
 logticks_left$data <- data.frame(x=NA, Neuropathology=factor(c("CTR","DLB","PSP","PiD","CBD","CTE","fAD","AD"),levels=c("CTR","DLB","PSP","PiD","CBD","CTE","fAD","AD")))
@@ -206,10 +204,7 @@ plot_N_insoluble <- ggplot(data_FLEXI.iso.N,aes(x=Isoform,y=value)) +
   facet_wrap2(~Neuropathology,ncol=11,strip.position="bottom",axes="all",remove_labels="y") +
   ggtitle("2N, 1N, 0N\n(exon 2-3 splicing)") +
   scale_fill_manual(values=anno_colors$NPDX1) +
-  #scale_y_continuous(sec.axis=dup_axis(label=NULL,name=""),labels=math_format(10^.x),name=ylabel.N) +
   scale_y_log10(sec.axis=dup_axis(label=NULL,name=""),limits=c(NA,225),breaks=trans_breaks("log10",math_function3),labels=trans_format("log10",math_format2(10^.x)),name=ylabel.N) + 
-  
-  #scale_y_continuous(sec.axis=dup_axis(label=NULL,name=""),name=ylabel.N,limits=c(NA,0)) +
   logticks_left + logticks_right +
   stat_pvalue_manual(Nisoform_insoluble_ttest,label=p.label,y.position=heights.N,hide.ns=TRUE,tip.length=0,bracket.size=linesize,label.size=pvalsize) +
   theme_minimal() +
@@ -224,13 +219,10 @@ timsdata.flexi$Neuropathology <- factor(timsdata.flexi$Neuropathology,levels=c("
 
 Rratio2_timsdata_ttest <- compare_means(RisoformRatio~Neuropathology,data=timsdata.flexi,ref.group="CTR",method=testmethod,p.adjust.method=pvaluecorrection)
 
-#data_FLEXI.iso.R$Rratio <- log2(data_FLEXI.iso.R$Rratio)
-#ylabel.R <- "log2 R3/R4 ratio"
 logheights.R <- c(1.8,2,2.2,2.4,2.6)
 logheights.R <- c(1.6,2.1,2.6,3.1,3.6)
 logheights.R <- c(0.55,0.9,1.25,1.6)
 regheights.R <- c(82.5,87.5,92.5,97.5,102.5)
-#regheights.R <- c()
 ylabel.R <- "ratio [3R/4R]"
 heights.R <- logheights.R
 plot_R_timsdata <- ggplot(timsdata.flexi,aes(x=Neuropathology,y=RisoformRatio)) + 
@@ -239,18 +231,12 @@ plot_R_timsdata <- ggplot(timsdata.flexi,aes(x=Neuropathology,y=RisoformRatio)) 
   geom_boxplot(aes(fill=Neuropathology),lwd=linesize) +
   ggtitle("3R/4R ratio\n(exon 10 splicing)") +
   scale_fill_manual(values=anno_colors$NPDX1) +
-  #scale_y_continuous(sec.axis=dup_axis(label=NULL,name=""),name=ylabel.R) +
-  scale_y_log10(sec.axis=dup_axis(label=NULL,name=""),limits=c(NA,80),breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format2(10^.x)),name=ylabel.R) + 
+  scale_y_log10(sec.axis=dup_axis(label=NULL,name=""),limits=c(NA,80),breaks=trans_breaks("log10",function(x){print(x); 10^x}),labels=trans_format("log10",math_format2(10^.x)),name=ylabel.R) + 
   annotation_logticks(side="l",short=unit(0.15,"cm"),mid=unit(0.15,"cm"),long=unit(0.25,"cm"),size=linesize) +
   annotation_logticks(side="r",short=unit(0.15,"cm"),mid=unit(0.15,"cm"),long=unit(0.25,"cm"),size=linesize) +
   stat_pvalue_manual(Rratio2_timsdata_ttest,label=p.label,y.position=heights.R,hide.ns=TRUE,tip.length=0,bracket.size=linesize,label.size=pvalsize) +
   theme_minimal() +
   theme(plot.title=element_text(hjust=0.5,size=titlesize,face="bold"),axis.line=element_line(size=linesize),title=element_text(size=titlesize,face="bold"),axis.ticks=element_line(size=linesize+0.1),axis.title.x=element_blank(),axis.text=element_text(size=axistextsize,face="bold",color="black"),axis.text.x=element_text(angle=90,hjust=1,vjust=0.5),axis.title.y=element_text(size=axistitlesize,face="bold"),legend.position="none")
-
-
-
-
-
 
 labelsize <- 22
 layout <- t(cbind(c(1,1,1,2,2,2),
@@ -259,5 +245,5 @@ layout <- t(cbind(c(1,1,1,2,2,2),
                 c(3,3,3,3,3,3)))
 
 p_all <- grid.arrange(grobs=list(plot_total_insoluble,plot_R_timsdata,plot_N_insoluble),layout_matrix=layout)
-ggsave(outfilename,p_all,device="png",width=8.32,height=5.12,units="in",scale=2)
+ggsave(outfilename,p_all,device="pdf",width=8.32,height=5.12,units="in",scale=2)
 ```

@@ -1,5 +1,5 @@
 ---
-title: "Figure 3 PTM and Cleavage Clustering"
+title: "Figure 3 and Supplementary Figure S2: PTM and Cleavage Clustering"
 author: "Christoph N. Schlaffner"
 output:
   pdf_document: default
@@ -68,14 +68,11 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
   PTMdata$V1 <- c("","",paste(metadf$X1,metadf$X2,sep="_"))
   if(!(group_disease%in%c("ALL"))) {
     PTMdata <- PTMdata[PTMdata$V2%in%c("",group_disease,"CTR"),]
-    #takeout <- paste(rep("CTRL_Insol_",6),c(15:20),sep="")
-    #PTMdata <- PTMdata[!(PTMdata$V1%in%takeout),]
   }
   
   PTMsites <- PTMdata[2,-c(1,2)]
   Isosites <- PTMdata[1,-c(1,2)]
   PTMsites <- paste(PTMsites,Isosites,sep="_")
-  #PTMsites <- colnames(PTMdata)[-c(1,2)]
   df <- as.data.frame(matrix(unlist(lapply(PTMsites,splitPTMs)),ncol=5,byrow=TRUE))
   df.full <- df
   df <- df[,c(1:3,5)]
@@ -87,16 +84,12 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
   org <- c(1,2)
   maxlength <- dim(df.full)[1]
   for(i in 1:maxlength) {
-    #print("########")
-    #print(originalcols[which(originalcols$PTM==df.full$V4[i]),])
     tmp <- originalcols[which(originalcols$PTM==df.full$V4[i]),]
     tmp <- tmp[tmp$iso==df.full$V5[i],]
-    #print(paste("   ",tmp$idx,sep=""))
     org <- c(org,tmp$idx)
   }
   PTMdata2 <- PTMdata[,org]
   PTMdata2 <- PTMdata2[-c(1,2),]
-  #PTMdata2 <- PTMdata[,c(colnames(PTMdata)[1:2],df.full$V4)]
   PTMdata.tmp <- as.data.frame(cbind(matrix(c("","","","","",""),ncol=2),t(df[,c("V1","V6","V5")])))
   colnames(PTMdata.tmp) <- colnames(PTMdata2)
   PTMdata2 <- as.data.frame(t(rbind(PTMdata.tmp,PTMdata2)))
@@ -199,15 +192,6 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
     if(sum(PTMdata2.tn$fAD<min_value)>0) {
       PTMdata2.tn[PTMdata2.tn$fAD<min_value,]$fAD <- 0.0
     }
-    #if(sum(PTMdata2.tn$CAA<min_value)>0) {
-    #  PTMdata2.tn[PTMdata2.tn$CAA<min_value,]$CAA <- 0.0
-    #}
-    #if(sum(PTMdata2.tn$NPCAD<min_value)>0) {
-    #  PTMdata2.tn[PTMdata2.tn$NPCAD<min_value,]$NPCAD <- 0.0
-    #}
-    #if(sum(PTMdata2.tn$FTLDTau<min_value)>0) {
-    #  PTMdata2.tn[PTMdata2.tn$FTLDTau<min_value,]$FTLDTau <- 0.0
-    #}
   }
   
   ##############################################################################
@@ -215,14 +199,11 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
   Cleavagedata <- Cleavagedata[,(Cleavagedata[1,]==""|Cleavagedata[2,]!="")]
   if(!(group_disease%in%c("ALL"))) {
     Cleavagedata <- Cleavagedata[Cleavagedata$V2%in%c("",group_disease,"CTR"),]
-    #takeout <- paste(rep("CTRL_Insol_",6),c(15:20),sep="")
-    #Cleavagedata <- Cleavagedata[!(Cleavagedata$V1%in%takeout),]
   }
   
   Cleavagesites <- Cleavagedata[2,-c(1,2)]
   Isosites <- Cleavagedata[1,-c(1,2)]
   Cleavagesites <- paste(Cleavagesites,Isosites,sep="_")
-  #PTMsites <- colnames(PTMdata)[-c(1,2)]
   dfC <- as.data.frame(matrix(unlist(lapply(Cleavagesites,splitCleavages)),ncol=5,byrow=TRUE))
   dfC.full <- dfC
   dfC <- dfC[,c(1:3,5)]
@@ -234,24 +215,18 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
   org <- c(1,2)
   maxlength <- dim(dfC.full)[1]
   for(i in 1:maxlength) {
-    #print("########")
-    #print(originalcols[which(originalcols$PTM==df.full$V4[i]),])
     tmp <- originalcols[which(originalcols$Cleavage==dfC.full$V4[i]),]
     tmp <- tmp[tmp$iso==dfC.full$V5[i],]
-    #print(paste("   ",tmp$idx,sep=""))
     org <- c(org,tmp$idx)
   }
   Cleavagedata2 <- Cleavagedata[,org]
   Cleavagedata2 <- Cleavagedata2[-c(1,2),]
-  #PTMdata2 <- PTMdata[,c(colnames(PTMdata)[1:2],df.full$V4)]
   Cleavagedata.tmp <- as.data.frame(cbind(matrix(c("","","","","",""),ncol=2),t(dfC[,c("V1","V6","V5")])))
   colnames(Cleavagedata.tmp) <- colnames(Cleavagedata2)
   Cleavagedata2 <- as.data.frame(t(rbind(Cleavagedata.tmp,Cleavagedata2)))
-  #Cleavagedata2 <- Cleavagedata2[Cleavagedata2$V1!="Oxidation",]
   Cleavagedata2.head <- Cleavagedata2[c(1,2),]
   Cleavagedata2 <- Cleavagedata2[-c(1,2),]
   Cleavagedata2 <- aggregate(. ~ V1+V5+V6,data=Cleavagedata2,max,na.rm=TRUE)
-  #df <- df[df$V1!="Oxidation",]
   dfC <- dfC[!duplicated(dfC),]
   dfC$V0 <- paste(dfC$V1,"(",dfC$V2,")@",dfC$V3,sep="")
   dfC$V01 <- paste(dfC$V0,"_",dfC$V5,sep="")
@@ -270,8 +245,6 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
   
   rownames(dfC) <- dfC$V01
   dfC[dfC$V1=="Non-tryptic",]$V1 <- "Nontryptic"
-  #df[df$V1=="N-term",]$V1 <- "Nterm"
-  #df[df$V1=="C-term",]$V1 <- "Cterm"
   dfC$V0 <- NULL
   dfC$V2 <- NULL
   dfC$V3 <- NULL
@@ -327,7 +300,7 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
   
   ###################################################################
   ###################################################################
-  ### do not change but only filter!!!
+  ### filter
   if(group_disease%in%c("ALL")) {
     PTMdata2.t <- PTMdata2.t[apply(PTMdata2.tn[,c(1:8)],1,sum)>0.0,]
   } else {
@@ -345,7 +318,7 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
   
   
   ########################################
-  ### do not change but only filter!!!
+  ### filter
   if(group_disease%in%c("ALL")) {
     Cleavagedata2.t <- Cleavagedata2.t[apply(Cleavagedata2.tn[,c(1:8)],1,sum)>0.0,]
   } else {
@@ -368,9 +341,7 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
   samplenames <- rownames(PTMdata2)
   ptmnamesselect <- startsWith(ptmnames,ptmselect)
   if(ptmselect=="ALL") {
-    #ptmnamesselect <- rep(TRUE,length(ptmnames))
     ptmnamesselect <- !(startsWith(ptmnames,c("GG(S)"))|(startsWith(ptmnames,c("Deamidated"))))
-    #df <- df[!(startsWith(rownames(df),c("GG(S)"))|startsWith(rownames(df),c("Deamidated"))),]
   }
   
   
@@ -381,6 +352,17 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
   if(cleavageselect=="ALL") {
     cleavagenamesselect <- rep(TRUE,length(cleavagenames))
   }
+  
+  seg.f <- data.frame(seg.name=c("N-term","N1","N2","mid","PRR","R1","R2","R3","R4","C-term"),seg.Start=c(1,45,74,103,151,242,273,304,335,372),seg.End=c(44,73,102,150,241,272,303,334,371,441),the.v=c(NA),NO=c(NA))
+  seg.f2 <- data.frame(seg.name=c("N-term","N1/N2","mid","PRR","R1-R4","C-term"),seg.Start=c(1,45,103,151,242,372),seg.End=c(44,102,150,241,371,441),the.v=c(NA),NO=c(NA))
+  
+  df$site <- as.numeric(matrix(unlist(strsplit(str_replace(rownames(df),"@","_"),"_")),ncol=3,byrow=TRUE)[,2])
+  df$Region <- apply(df,1,function(x,segtau) {x_1 <- as.numeric(x["site"]); segtau[x_1>=segtau$seg.Start & x_1<=segtau$seg.End,]$seg.name;},seg.f2)
+  df$site <- NULL
+  
+  dfC$site <- as.numeric(matrix(unlist(strsplit(str_replace(rownames(dfC),"@","_"),"_")),ncol=3,byrow=TRUE)[,2])
+  dfC$Region <- apply(dfC,1,function(x,segtau) {x_1 <- as.numeric(x["site"]); segtau[x_1>=segtau$seg.Start & x_1<=segtau$seg.End,]$seg.name;},seg.f2)
+  dfC$site <- NULL
   
   ###################################################################
   ###################################################################
@@ -400,18 +382,22 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
   heatmaplegend_cleav <- Legend(at=1:2,title=gt_render("**Cleavage**<br>**presence**"),labels=c("not detected","detected"),legend_gp=gpar(fill=c("#CCCCCC","#542788")),title_gp=gpar(fontsize=legendtextsize),labels_gp=gpar(fontsize=legendtextsize))
   heatmaplegend <- Legend(at=1:3,title=gt_render("**PTM/Cleavage**<br>**presence**"),gap=unit(titlegapsize,"mm"),title_gap=unit(titlegapsize,"mm"),grid_width=unit(gridwidth, "mm"),labels=c("PTM detected","not detected","Cleavage detected"),legend_gp=gpar(fill=c("#01665E","#CCCCCC","#542788")),title_gp=gpar(fontsize=legendtextsize),labels_gp=gpar(fontsize=legendtextsize))
   ptmlegend <- Legend(at=1:5,title=gt_render("**PTM**"),nrow=5,gap=unit(titlegapsize,"mm"),title_gap=unit(titlegapsize,"mm"),grid_width=unit(gridwidth, "mm"),column_gap=unit(colgapsize,"mm"),labels=mods,legend_gp=gpar(fill=anno_colors$PTMs[mods]),title_gp=gpar(fontsize=legendtextsize),labels_gp=gpar(fontsize=legendtextsize))
+  regionlegend <- Legend(at=1:6,title=gt_render("**Region**"),nrow=5,gap=unit(titlegapsize,"mm"),title_gap = unit(titlegapsize,"mm"),grid_width = unit(gridwidth, "mm"), column_gap = unit(colgapsize,"mm"), labels=seg.f2$seg.name,legend_gp=gpar(fill=anno_colors$Region[seg.f2$seg.name]),title_gp=gpar(fontsize=legendtextsize),labels_gp=gpar(fontsize=legendtextsize))
   isoformlegend <- Legend(at=1:2,title=gt_render("**Isoform**"),labels=c("1N","3R"),gap=unit(titlegapsize,"mm"),title_gap=unit(titlegapsize,"mm"),grid_width=unit(gridwidth, "mm"),legend_gp=gpar(fill=anno_colors$Isoform[c("N1","R3")]),title_gp=gpar(fontsize=legendtextsize),labels_gp=gpar(fontsize=legendtextsize))
   Neuropathlegend <- Legend(at=1:8, title=gt_render("**Neuropathology***(primary: NPDX)*"),nrow=5,gap=unit(titlegapsize,"mm"),title_gap=unit(titlegapsize,"mm"),grid_width=unit(gridwidth, "mm"),column_gap=unit(colgapsize*3,"mm"),labels=anno_names$NPDX1[npdx],legend_gp=gpar(fill=anno_colors$NPDX1[npdx]),title_gp=gpar(fontsize=legendtextsize),labels_gp=gpar(fontsize=legendtextsize))
   Braaklegend <- Legend(at=1:10,title=gt_render("**Braak stage**"),nrow=5,gap=unit(titlegapsize,"mm"),title_gap=unit(titlegapsize,"mm"),grid_width=unit(gridwidth, "mm"),column_gap=unit(colgapsize,"mm"),labels=c("0","0-I","I","II","II-III","III","IV","IV-V","V","V-VI","VI"),legend_gp=gpar(fill=anno_colors$Braak[c("O","OI","I","II","IIIII","III","IV","IVV","V","VVI","VI")]),title_gp=gpar(fontsize=legendtextsize),labels_gp=gpar(fontsize=legendtextsize))
   CTElegend <- Legend(at=1:4,title=gt_render("**CTE stage**"),labels=c("I","II","III","IV"),grid_width=unit(gridwidth, "mm"),legend_gp=gpar(fill=anno_colors$CTE[c("I","II","III","IV")]),title_gp=gpar(fontsize=legendtextsize),labels_gp=gpar(fontsize=legendtextsize))
   pd_PTM <- packLegend(Neuropathlegend,ptmlegend,isoformlegend,max_width=unit(legendwidth,"cm"),direction="horizontal",column_gap=unit(columngapsize,"mm"),row_gap=unit(rowgapsize,"mm"))
   pd_Cleav <- packLegend(Braaklegend,heatmaplegend,max_width=unit(legendwidth,"cm"),direction="horizontal",column_gap=unit(columngapsize,"mm"),row_gap=unit(rowgapsize,"mm"))
-  pd_all <- packLegend(ptmlegend,heatmaplegend,Neuropathlegend,Braaklegend,isoformlegend,max_width=unit(legendwidth*2,"cm"),direction="horizontal",column_gap=unit(columngapsize,"mm"),row_gap=unit(rowgapsize,"mm"))
+  pd_all <- packLegend(ptmlegend,heatmaplegend,Neuropathlegend,Braaklegend,regionlegend,max_width=unit(legendwidth*2,"cm"),direction="horizontal",column_gap=unit(columngapsize,"mm"),row_gap=unit(rowgapsize,"mm"))
   
   
   pdf(qq(outfilelegend), width =8.25, height = 1.07)
-  draw(pd_all)#,annotation_legend_side="bottom")
+  draw(pd_all)
   dev.off()
+  
+  
+  
   
   ###################################################################
   ###################################################################
@@ -436,7 +422,6 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
     df <- df[ptmnamesselect,]
     distsample <- dist(as.matrix(PTMdata2),method="euclidean", diag=TRUE, upper=TRUE)
     clustersample <- hclust(distsample,method="ward.D")
-    #clustersample <- callback(clustersample)
     aaa <- cutree(clustersample,6)[clustersample$order]
     bbb <- names(aaa)[c(which(aaa==2),which(aaa==5),which(aaa==6),which(aaa==3),which(aaa==1),which(aaa==4))]
     clustersample <- dendextend::rotate(clustersample,c(bbb))
@@ -455,10 +440,9 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
       
       metadata$x <- rep(NA,dim(metadata)[1])
       metadata <- metadata[,c("x","Braak","NPDX1")]
-      #metadata[metadata$NPDX1=="CAA",]$NPDX1 <- "AD"
-      df <- df[,c("PTMs","Isoform")]
+      df <- df[,c("PTMs","Region")]
       df1 <- df
-      df1$Isoform <- NULL
+      df1$Region <- NULL
       print(dim(PTMdata2))
       
       PTMdata3 <- PTMdata2
@@ -474,7 +458,7 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
       
       ggsave(str_replace_all(PTMclustered,".csv",".png"),PTMclusterdend,width=40,height=15,units="cm")
       
-      write.csv(PTMdata3,PTMclustered,row.names=TRUE,col.names=TRUE)
+      write.csv(PTMdata3,PTMclustered,row.names=TRUE)
       
       #png(qq(outfile), width =1475, height = 3800, unit = "px")
       pdf(qq(outfile), width =4.2, height = 9.36)
@@ -483,13 +467,11 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
                      show_column_names=F, row_dend_reorder=FALSE, split=6, use_raster=TRUE, raster_device="png", row_dend_width=unit(rowdend_height, "cm"),
                      show_row_names=F, column_dend_height=unit(coldend_height, "cm"), row_names_gp=gpar(fontsize=rownamesfontsize), row_title=NULL, row_gap=unit(rowgapsize,"mm"),
                      top_annotation=HeatmapAnnotation(df=df1,col=anno_colors,na_col="white",gap=unit(annogapsize,"points"),gp=gpar(col="white"),annotation_label=c("PTMs"),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="left",show_legend=FALSE),
-                     bottom_annotation=HeatmapAnnotation(df=df,col=anno_colors,na_col="white",gap=unit(annogapsize,"points"),gp=gpar(col="white"),annotation_label=c("PTMs","Isoform"),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="left",show_legend=FALSE),
+                     bottom_annotation=HeatmapAnnotation(df=df,col=anno_colors,na_col="white",gap=unit(annogapsize,"points"),gp=gpar(col="white"),annotation_label=c("PTMs","Region"),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="left",show_legend=FALSE),
                      right_annotation=HeatmapAnnotation(df=metadata,which="row",gap=unit(annogapsize,"points"),col=anno_colors,na_col="white",gp=gpar(col="white"),annotation_label=c("","Braak stage","NPDX"),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="top",show_legend=FALSE),
-                     left_annotation=HeatmapAnnotation(foo=anno_block(gp=gpar(fill=anno_colors$NPDX1[c("CTRL","CVD","CBD","INF","CTE","AD")]),labels=c("P1\nCTR-like", "P2\nmixed", "P3\nCBD-like","P4\nmixed","P5\nCTE-like","P6\nAD"),labels_gp=gpar(col=c("black","black","black","black","white","white"),fontsize=annotationtextsize+annotationtextsizeoffset)),which="row"),
+                     left_annotation=HeatmapAnnotation(foo=anno_block(gp=gpar(fill=anno_colors$NPDX1[c("CTRL","MIX1","CBD","MIX2","CTE","AD")]),labels=c("P1\nCTR-like", "P2\nmixed", "P3\nCBD-like","P4\nmixed","P5\nCTE-like","P6\nAD"),labels_gp=gpar(col=c("black","black","black","black","white","white"),fontsize=annotationtextsize+annotationtextsizeoffset)),which="row"),
                      show_heatmap_legend=FALSE)
-      #top_annotation=HeatmapAnnotation(df)
-      #        cex=1, cellheight = 10, cellwidth = 5,legend=TRUE, annotation_legend=TRUE, show_colnames=FALSE)
-      draw(htm_PTM)#,annotation_legend_list=pd_PTM,annotation_legend_side="bottom")
+      draw(htm_PTM)
       dev.off()
       
       #png(qq(outfile2), width =1475, height = 3800, unit = "px")
@@ -499,13 +481,11 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
                      show_column_names=F, row_dend_reorder=FALSE, row_split=6, use_raster=TRUE, raster_device="png", row_dend_width=unit(rowdend_height, "cm"),
                      show_row_names=F, column_dend_height=unit(coldend_height, "cm"), row_names_gp=gpar(fontsize=rownamesfontsize), row_title=NULL, row_gap=unit(rowgapsize,"mm"),
                      top_annotation=HeatmapAnnotation(df=df1,col=anno_colors,gap=unit(annogapsize,"points"),na_col="white",gp=gpar(col="white"),annotation_label=c("PTMs"),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="left",show_legend=FALSE),
-                     bottom_annotation=HeatmapAnnotation(df=df,col=anno_colors,gap=unit(annogapsize,"points"),na_col="white",gp=gpar(col="white"),annotation_label=c("PTMs","Isoform"),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="left",show_legend=FALSE),
+                     bottom_annotation=HeatmapAnnotation(df=df,col=anno_colors,gap=unit(annogapsize,"points"),na_col="white",gp=gpar(col="white"),annotation_label=c("PTMs","Region"),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="left",show_legend=FALSE),
                      right_annotation=HeatmapAnnotation(df=metadata,which="row",gap=unit(annogapsize,"points"),col=anno_colors,na_col="white",gp=gpar(col="white"),annotation_label=c("","Braak stage","NPDX"),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="top",show_legend=FALSE),
-                     left_annotation=HeatmapAnnotation(foo=anno_block(gp=gpar(fill=anno_colors$NPDX1[c("CTRL","CVD","CBD","INF","CTE","AD")]),labels=c("P1\nCTR-like", "P2\nmixed", "P3\nCBD-like","P4\nmixed","P5\nCTE-like","P6\nAD"),labels_gp=gpar(col=c("black","black","black","black","white","white"),fontsize=annotationtextsize+annotationtextsizeoffset)),which="row"),
+                     left_annotation=HeatmapAnnotation(foo=anno_block(gp=gpar(fill=anno_colors$NPDX1[c("CTRL","MIX1","CBD","MIX2","CTE","AD")]),labels=c("P1\nCTR-like", "P2\nmixed", "P3\nCBD-like","P4\nmixed","P5\nCTE-like","P6\nAD"),labels_gp=gpar(col=c("black","black","black","black","white","white"),fontsize=annotationtextsize+annotationtextsizeoffset)),which="row"),
                      show_heatmap_legend=FALSE)
-      #top_annotation=HeatmapAnnotation(df)
-      #        cex=1, cellheight = 10, cellwidth = 5,legend=TRUE, annotation_legend=TRUE, show_colnames=FALSE)
-      draw(htm_PTM_NCterm)#,annotation_legend_list=pd_PTM,annotation_legend_side="bottom")
+      draw(htm_PTM_NCterm)
       dev.off()
 
     }
@@ -538,14 +518,9 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
       dfC1 <- dfC
       dfC1$x <- rep(NA,dim(dfC)[1])
       dfC1$x2 <- dfC1$x
-      dfC1 <- dfC1[,c("x","x2")]
-      df1$Isoform <- NULL
-      #FLEXIdata[FLEXIdata>1] <- 1
-      
-      #pheatmap(Cleavagedata2, filename=outfile,
-      #         show_rownames=T, cluster_cols=callback(clusterCleavagesite), cluster_rows=callback(clustersample), cutree_rows=11, color=colorRampPalette(c("#CCCCCC","#6E80F4"))(10),
-      #         cex=1, border_color="white", cellheight = 10, cellwidth = 5,annotation_colors=anno_colors,
-      #         annotation_row=metadata,annotation_col=df, legend=TRUE, annotation_legend=TRUE, show_colnames=FALSE)
+      dfC1 <- dfC1[,c("Region","x")]
+      dfC2 <- dfC1[,c("x")]
+
       print(dim(Cleavagedata2))
       
       Cleavagedata3 <- Cleavagedata2
@@ -562,7 +537,7 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
       ggsave(str_replace_all(Cleavageclustered,".csv",".png"),Cleavageclusterdend,width=40,height=15,units="cm")
       
       
-      write.csv(Cleavagedata3,Cleavageclustered,row.names=TRUE,col.names=TRUE)
+      write.csv(Cleavagedata3,Cleavageclustered,row.names=TRUE)
       
       
       #png(qq(outfileC), width =1475, height = 3800, unit = "px")
@@ -571,14 +546,12 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
                      cluster_rows=set(as.dendrogram(clustersample),"branches_lwd",brancheslwd), cluster_columns=set(as.dendrogram(callback(clusterCleavagesite)),"branches_lwd",brancheslwd),
                      show_column_names=F, row_dend_reorder=FALSE, row_split=6, use_raster=TRUE, raster_device="png", row_dend_width=unit(rowdend_height, "cm"),
                      show_row_names=F, column_dend_height=unit(coldend_height, "cm"), row_names_gp=gpar(fontsize=rownamesfontsize), row_title=NULL, row_gap=unit(rowgapsize,"mm"),
-                     top_annotation=HeatmapAnnotation(df=dfC,col=anno_colors,na_col="white",gap=unit(annogapsize,"points"),gp=gpar(col="white"),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="left",show_legend=FALSE),
-                     bottom_annotation=HeatmapAnnotation(df=dfC1,col=anno_colors,na_col="white",gap=unit(annogapsize,"points"),gp=gpar(col="white"),annotation_label=c("",""),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="left",show_legend=FALSE),
+                     top_annotation=HeatmapAnnotation(df=dfC2,col=anno_colors,na_col="white",gap=unit(annogapsize,"points"),gp=gpar(col="white"),annotation_label=c(""),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="left",show_legend=FALSE),
+                     bottom_annotation=HeatmapAnnotation(df=dfC1,col=anno_colors,na_col="white",gap=unit(annogapsize,"points"),gp=gpar(col="white"),annotation_label=c("Region",""),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="left",show_legend=FALSE),
                      right_annotation=HeatmapAnnotation(df=metadata,which="row",gap=unit(annogapsize,"points"),col=anno_colors,na_col="white",gp=gpar(col="white"),annotation_label=c("","Braak stage","NPDX"),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="top",show_legend=FALSE),
-                     left_annotation=HeatmapAnnotation(foo=anno_block(gp=gpar(fill=anno_colors$NPDX1[c("CTRL","PSP","CVD","INF","AD","fAD")]),labels=c("C1\nCTR-like", "C2\nPSP-like", "C3\nmixed","C4\nmixed","C5\nAD-like","C6\nAD"),labels_gp=gpar(col=c("black","black","black","black","white","white"),fontsize=annotationtextsize+annotationtextsizeoffset)),which="row"),
+                     left_annotation=HeatmapAnnotation(foo=anno_block(gp=gpar(fill=anno_colors$NPDX1[c("CTRL","PSP","MIX1","MIX2","AD","fAD")]),labels=c("C1\nCTR-like", "C2\nPSP-like", "C3\nmixed","C4\nmixed","C5\nAD-like","C6\nAD"),labels_gp=gpar(col=c("black","black","black","black","white","white"),fontsize=annotationtextsize+annotationtextsizeoffset)),which="row"),
                      show_heatmap_legend=FALSE)
-      #top_annotation=HeatmapAnnotation(df)
-      #        cex=1, cellheight = 10, cellwidth = 5,legend=TRUE, annotation_legend=TRUE, show_colnames=FALSE)
-      draw(htm_Cleav)#,annotation_legend_list=pd_Cleav,annotation_legend_side="bottom")
+      draw(htm_Cleav)
       dev.off()
       
       #png(qq(outfileC2), width =1475, height = 3800, unit = "px")
@@ -587,125 +560,58 @@ createplot <- function(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_v
                            cluster_rows=set(as.dendrogram(clustersample),"branches_lwd",brancheslwd), cluster_columns=F,
                            show_column_names=F, row_dend_reorder=FALSE, row_split=6, use_raster=TRUE, raster_device="png", row_dend_width=unit(rowdend_height, "cm"),
                            show_row_names=F, column_dend_height=unit(coldend_height, "cm"), row_names_gp=gpar(fontsize=rownamesfontsize), row_title=NULL, row_gap=unit(rowgapsize,"mm"),
-                           top_annotation=HeatmapAnnotation(df=dfC,col=anno_colors,gap=unit(annogapsize,"points"),na_col="white",gp=gpar(col="white"),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="left",show_legend=FALSE),
-                           bottom_annotation=HeatmapAnnotation(df=dfC1,col=anno_colors,gap=unit(annogapsize,"points"),na_col="white",gp=gpar(col="white"),annotation_label=c("",""),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="left",show_legend=FALSE),
+                           top_annotation=HeatmapAnnotation(df=dfC2,col=anno_colors,gap=unit(annogapsize,"points"),na_col="white",gp=gpar(col="white"),annotation_label=c(""),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="left",show_legend=FALSE),
+                           bottom_annotation=HeatmapAnnotation(df=dfC1,col=anno_colors,gap=unit(annogapsize,"points"),na_col="white",gp=gpar(col="white"),annotation_label=c("Region",""),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="left",show_legend=FALSE),
                            right_annotation=HeatmapAnnotation(df=metadata,which="row",gap=unit(annogapsize,"points"),col=anno_colors,na_col="white",gp=gpar(col="white"),annotation_label=c("","Braak stage","NPDX"),annotation_name_gp=gpar(fontsize=annotationtextsize,col="black"),simple_anno_size = unit(annosize, "mm"),annotation_name_side="top",show_legend=FALSE),
-                           left_annotation=HeatmapAnnotation(foo=anno_block(gp=gpar(fill=anno_colors$NPDX1[c("CTRL","PSP","CVD","INF","AD","fAD")]),labels=c("C1\nCTR-like", "C2\nPSP-like", "C3\nmixed","C4\nmixed","C5\nAD-like","C6\nAD"),labels_gp=gpar(col=c("black","black","black","black","white","white"),fontsize=annotationtextsize+annotationtextsizeoffset)),which="row"),
+                           left_annotation=HeatmapAnnotation(foo=anno_block(gp=gpar(fill=anno_colors$NPDX1[c("CTRL","PSP","MIX1","MIX2","AD","fAD")]),labels=c("C1\nCTR-like", "C2\nPSP-like", "C3\nmixed","C4\nmixed","C5\nAD-like","C6\nAD"),labels_gp=gpar(col=c("black","black","black","black","white","white"),fontsize=annotationtextsize+annotationtextsizeoffset)),which="row"),
                            show_heatmap_legend=FALSE)
-      #top_annotation=HeatmapAnnotation(df)
-      #        cex=1, cellheight = 10, cellwidth = 5,legend=TRUE, annotation_legend=TRUE, show_colnames=FALSE)
-      draw(htm_Cleav_NCterm)#,annotation_legend_list=pd_Cleav,annotation_legend_side="bottom")
+      draw(htm_Cleav_NCterm)
       dev.off()
       
     }
   } 
-  #htm_list <- htm_PTM + htm_Cleav
-  #htm_list_NC <- htm_PTM_NCterm + htm_Cleav_NCterm
-  #p_PTM <- grid.grabExpr(draw(htm_PTM))
-  #p_Cleav <- grid.grabExpr(draw(htm_Cleav))#,annotation_legend_list=pd))
-  #p_PTM_NC <- grid.grabExpr(draw(htm_PTM_NCterm))
-  #p_Cleav_NC <- grid.grabExpr(draw(htm_Cleav_NCterm))#,annotation_legend_list=pd))
-  
-  #png(qq(outfile), width =1850, height = 3000, unit = "px")
-  #draw(htm_PTM + htm_Cleav,annotation_legend_list=pd,annotation_legend_side="bottom")
-  #p_PTM_Cleav <- plot_grid(p_PTM,p_Cleav,rel_widths=c(1,1))
-  #dev.off()
-  #ggsave(outfile,p_PTM_Cleav,width=60,height=40,units="in",limitsize=FALSE,scale=1.2)
-  
-  #png(qq(outfile2), width =1850, height = 3000, unit = "px")
-  #draw(htm_PTM_NCterm + htm_Cleav_NCterm,annotation_legend_list=pd,annotation_legend_side="bottom")
-  #p_PTM_Cleav_NC <- plot_grid(p_PTM_NC,p_Cleav_NC,rel_widths=c(1,1))
-  #dev.off()
-  #ggsave(outfile2,p_PTM_Cleav_NC,width=60,height=40,units="in",limitsize=FALSE,scale=1.2)
 }
 
 
-#anno_colors <- list(PTMs=c(Acetylation="#93478F",Ubiquitination="#7AB77C",Methylation="#FF7369",Phosphorylation="#9B9B9B",Citrullination="#FF17E3",Deamidation="#6C7EBC"),
 anno_colors <- list(PTMs=c(Acetylation="#93478F",Ubiquitination="#7AB77C",Methylation="#FF7369",Phosphorylation="#000000",Citrullination="#FF17E3",Deamidation="#6C7EBC"),
-  Cleavage=c(Nterm="#8DA0CB",Cterm="#E78AC3"),
   Isoform=c(N0="#BEBADA",N1="#FDB462",R3="#66C2A5","#FFFFFF"),
-  #  Neuropathology=c(CBD="#8DD3C7",PiD="#984EA3",PSP="#FF7F00",DLB="#FFD92F"))
-  NPDX1=c(fAD="#9C0B0C",NPCAD="#FF17E3",AD="#E41A1C",CAA="#914B00",CBD="#FFD92F",CTE="#1740B6",CTRL="#4DAF4A",DLB="#8DD3C7",FTLDTau="#17DFFF",PiD="#984EA3",PSP="#FF7F00",FTLD="#18BCD6",HS="#24B39B",HSTDP="#2BE0C2",HEMR="#EB5456",HEMT="#AD4041",CVD="#FB9A99",INF="#FC8D62",MEN="#FCCDE5",AS="#E5C494",PD="#E7298A",MAL="#BC80BD",ALS="#E31A1C",DMP="#BEBADA",NFD="#1F78B4",ELC="#1B9E77",AHYP="#3890B0",CON="#F781BF",SNL="#FDCDAC",FETGI="#80B1D3",AGD="#545454","#FFFFFF"),
-  NPDX2=c(fAD="#9C0B0C",NPCAD="#FF17E3",AD="#E41A1C",CAA="#914B00",CBD="#FFD92F",CTE="#1740B6",CTRL="#4DAF4A",DLB="#8DD3C7",FTLDTau="#17DFFF",PiD="#984EA3",PSP="#FF7F00",FTLD="#18BCD6",HS="#24B39B",HSTDP="#2BE0C2",HEMR="#EB5456",HEMT="#AD4041",CVD="#FB9A99",INF="#FC8D62",MEN="#FCCDE5",AS="#E5C494",PD="#E7298A",MAL="#BC80BD",ALS="#E31A1C",DMP="#BEBADA",NFD="#1F78B4",ELC="#1B9E77",AHYP="#3890B0",CON="#F781BF",SNL="#FDCDAC",FETGI="#80B1D3",AGD="#545454","#FFFFFF"),
-  #NPDX3=c(fAD="#9C0B0C",NPCAD="#FF17E3",AD="#E41A1C",CAA="#914B00",CBD="#FFD92F",CTE="#1740B6",CTRL="#4DAF4A",DLB="#8DD3C7",FTLDTau="#17DFFF",PiD="#984EA3",PSP="#FF7F00",FTLD="#18BCD6",HS="#24B39B",HSTDP="#2BE0C2",HEMR="#EB5456",HEMT="#AD4041",CVD="#FB9A99",INF="#FC8D62",MEN="#FCCDE5",AS="#E5C494",PD="#E7298A",MAL="#BC80BD",ALS="#E31A1C",DMP="#BEBADA",NFD="#1F78B4",ELC="#1B9E77",AHYP="#3890B0",CON="#F781BF",SNL="#FDCDAC",FETGI="#80B1D3",AGD="#545454","#FFFFFF"),
-  #NPDX4=c(fAD="#9C0B0C",NPCAD="#FF17E3",AD="#E41A1C",CAA="#914B00",CBD="#FFD92F",CTE="#1740B6",CTRL="#4DAF4A",DLB="#8DD3C7",FTLDTau="#17DFFF",PiD="#984EA3",PSP="#FF7F00",FTLD="#18BCD6",HS="#24B39B",HSTDP="#2BE0C2",HEMR="#EB5456",HEMT="#AD4041",CVD="#FB9A99",INF="#FC8D62",MEN="#FCCDE5",AS="#E5C494",PD="#E7298A",MAL="#BC80BD",ALS="#E31A1C",DMP="#BEBADA",NFD="#1F78B4",ELC="#1B9E77",AHYP="#3890B0",CON="#F781BF",SNL="#FDCDAC",FETGI="#80B1D3",AGD="#545454","#FFFFFF"),
-  #NPDX5=c(fAD="#9C0B0C",NPCAD="#FF17E3",AD="#E41A1C",CAA="#914B00",CBD="#FFD92F",CTE="#1740B6",CTRL="#4DAF4A",DLB="#8DD3C7",FTLDTau="#17DFFF",PiD="#984EA3",PSP="#FF7F00",FTLD="#18BCD6",HS="#24B39B",HSTDP="#2BE0C2",HEMR="#EB5456",HEMT="#AD4041",CVD="#FB9A99",INF="#FC8D62",MEN="#FCCDE5",AS="#E5C494",PD="#E7298A",MAL="#BC80BD",ALS="#E31A1C",DMP="#BEBADA",NFD="#1F78B4",ELC="#1B9E77",AHYP="#3890B0",CON="#F781BF",SNL="#FDCDAC",FETGI="#80B1D3",AGD="#545454","#FFFFFF"),
-  #NPDX6=c(fAD="#9C0B0C",NPCAD="#FF17E3",AD="#E41A1C",CAA="#914B00",CBD="#FFD92F",CTE="#1740B6",CTRL="#4DAF4A",DLB="#8DD3C7",FTLDTau="#17DFFF",PiD="#984EA3",PSP="#FF7F00",FTLD="#18BCD6",HS="#24B39B",HSTDP="#2BE0C2",HEMR="#EB5456",HEMT="#AD4041",CVD="#FB9A99",INF="#FC8D62",MEN="#FCCDE5",AS="#E5C494",PD="#E7298A",MAL="#BC80BD",ALS="#E31A1C",DMP="#BEBADA",NFD="#1F78B4",ELC="#1B9E77",AHYP="#3890B0",CON="#F781BF",SNL="#FDCDAC",FETGI="#80B1D3",AGD="#545454","#FFFFFF"),
+  NPDX1=c(fAD="#9C0B0C",AD="#E41A1C",CBD="#FFD92F",CTE="#1740B6",CTRL="#4DAF4A",DLB="#8DD3C7",PiD="#984EA3",PSP="#FF7F00",MIX1="#FB9A99",MIX2="#FC8D62","#FFFFFF"),
+  NPDX2=c(fAD="#9C0B0C",AD="#E41A1C",CBD="#FFD92F",CTE="#1740B6",CTRL="#4DAF4A",DLB="#8DD3C7",PiD="#984EA3",PSP="#FF7F00",MIX1="#FB9A99",MIX2="#FC8D62","#FFFFFF"),
   Braak=c(O="#F5E8ED",OI="#EBD2DC",I="#E2BCCB",II="#D8A6BA",IIIII="#CF90A9",III="#C57A98",IV="#BC6487",IVV="#B24E76",V="#A93865",VVI="#9F2254",VI="#960C43","#FFFFFF"),
-  CTE=c(I="#C1CAE4",II="#8395C9",III="#4660AE",IV="#092C94","#FFFFFF")
-  #PMI=c(less12="#F5F3DA",less24="#ECE7B6",less36="#E3DB91",less48="#DACF6D",less60="#D1C348",less72="#C8B724",more72="#BFAC00","#FFFFFF"),
-  #Sex=c(Female="#F7963B",Male="#199119","#FFFFFF"),
-  #Age=c(in20s="#E9F4DF",in30s="#D4E9C0",in40s="#BEDEA1",in50s="#A9D382",in60s="#94C862",in70s="#7EBD43",in80s="#69B224",over90="#54A805","#FFFFFF"),
-  #Group=c(AD="#E41A1C",fAD="#9C0B0C",CAA="#914B00",NPCAD="#FF17E3",CBD="#FFD92F",CTRL="#4DAF4A",PiD="#984EA3",PSP="#FF7F00",DLB="#8DD3C7",CTE="#1740B6",FTLDTau="#17DFFF")
+  Region=c("N-term"="#8DA0CB","N1/N2"="#FDB462","mid"="#7F7F7F","PRR"="#BEBADA","R1-R4"="#66C2A5","C-term"="#E78AC3")
 )
-#,
-#                    Clinical.Diagnosis=c(AD="#000000",CBD="#8285FF",Control="#FFFFFF",MCI="#E7B856",Dementia="#33D4D1",PiD="#BB3787",PSP="#85BB4E",PD="#A7FFFE",PNFA="#888888"),
-#                    Braak=c(O="#F3DFDC",I="#DCC6C2",II="#C5ADA9",IIIII="#AE9490",III="#977B77",IIIIV="#80625E",IVV="#694945",V="#52302C",VI="#3C1813","#FFFFFF"))
 
-#anno_names <- list(NPDX1=c(fAD="Familial Alzheimer's Disease",NPCAD="Neuropathological Changes of Alzhiemer's Disease",AD="Alzheimer's Disease",CAA="Cerebral Amyloid Angiopathy",CBD="Corticobasal Degeneration",CTE="Chronic Traumatic Encephalopathy",CTRL="Control",DLB="Lewy Body Disease",FTLDTau="Frontotemporal Lobar Degeneration\nwith Tau",PiD="Pick's Disease",PSP="Prograssive Supranuclear Palsy",FTLD="Frontotemporal Lobar Degeneration",HS="Hippocampal Sclerosis",HSTDP="Hippocampal Sclerosis with TDP43",HEMR="Hemorrhage",HEMT="Hematoma",CVD="Cerebrovascular Disease",INF="Infarcts",MEN="Meningioma",AS="Arteriolosclerosis",PD="Parkinson's Disease",MAL="Microscopic atrophic lesion of uncertain origin",ALS="Amyotrophic Lateral Sclerosis",DMP="Demyelinated Plaque",NFD="Neurofibrillary Degeneration",ELC="Electrode",AHYP="Acute Hypoxia",CON="Contusion",SNL="Severe Neuron Loss",FETGI="Focal Effects of Terminal Global Ischemia",AGD="Argyrophilic Grain Disease","#FFFFFF"))
-anno_names <- list(NPDX1=c(fAD="Familial AD",NPCAD="AD",AD="AD",CAA="AD",CBD="CBD",CTE="CTE",CTRL="CTR",DLB="DLB",FTLDTau="FTLD",PiD="PiD",PSP="PSP",FTLD="FTKD",HS="HS",HSTDP="HS-TDP43",HEMR="Hemorrhage",HEMT="Hematoma",CVD="Cerebrovascular Disease",INF="Infarcts",MEN="Meningioma",AS="Arteriolosclerosis",PD="Parkinson's Disease",MAL="Microscopic atrophic lesion of uncertain origin",ALS="Amyotrophic Lateral Sclerosis",DMP="Demyelinated Plaque",NFD="Neurofibrillary Degeneration",ELC="Electrode",AHYP="Acute Hypoxia",CON="Contusion",SNL="Severe Neuron Loss",FETGI="Focal Effects of Terminal Global Ischemia",AGD="Argyrophilic Grain Disease","#FFFFFF"))
+anno_names <- list(NPDX1=c(fAD="Familial AD",AD="AD",CBD="CBD",CTE="CTE",CTRL="CTR",DLB="DLB",FTLDTau="FTLD",PiD="PiD",PSP="PSP","#FFFFFF"))
 
 
-FDR <- c("05")
-#PG <- c("00")
-#PGx <- c(0.00)
-PG <- c("1","4","7","10")
-PG <- PG[4]
-PGx <- c(1,4,7,10)
-PGx <- PGx[4]
-#PTMs <- c("ALL","Acetyl","Deamidated","Methyl","Phospho","GG")
-PTMs <- c("ALL")
-Cleavages <- c("ALL")
-group <- c("ALL")
-
-
-metafile <- "C:/Work/Tau_comparisonpaper/FigureScripts/FINALSet/Neuropath_COMPLETE.csv"
+metafile <- "INSOL_Primary_Demographics.csv"
 metadata <- read.csv(metafile)
-metadf <- data.frame(matrix(unlist(lapply(metadata$newName,splitNames)),ncol=2,byrow=TRUE)[,c(1,2)])
-metadata$newName <- paste(metadf$X1,metadf$X2,sep="_")
-rownames(metadata) <- metadata$newName
-metadata$newName <- NULL
-colnames(metadata) <- c("Group","Age","Sex","PMI","Braak","CTE","NPDX1","NPDX2","NPDX3","NPDX4","NPDX5","NPDX6")
+rownames(metadata) <- metadata$Sample
+metadata$Sample <- NULL
+colnames(metadata) <- c("Group","BrainBank","BioID","Age","Sex","PMI","Braak","NPDX1","NPDX2")
 
-NPDXtab <- as.data.frame(table(c(metadata$NPDX1,metadata$NPDX2,metadata$NPDX3,metadata$NPDX4,metadata$NPDX5,metadata$NPDX6)))
+NPDXtab <- as.data.frame(table(c(metadata$NPDX1,metadata$NPDX2)))
 NPDXtab.filter <- NPDXtab[NPDXtab$Freq>=3,]
 NPDXtab.filter$Var1 <- as.character(NPDXtab.filter$Var1)
-metadata <- metadata[,c("NPDX1","NPDX2","Braak","CTE")]
+metadata <- metadata[,c("NPDX1","NPDX2","Braak")]
 if(sum(!(metadata$NPDX1%in%NPDXtab.filter$Var1))>0) {
   metadata[!(metadata$NPDX1%in%NPDXtab.filter$Var1),]$NPDX1 <- ""
 }
 if(sum(!(metadata$NPDX2%in%NPDXtab.filter$Var1))>0) {
   metadata[!(metadata$NPDX2%in%NPDXtab.filter$Var1),]$NPDX2 <- ""
 }
-#metadata[metadata$NPDX1=="",]$NPDX1 <- NA
 metadata[metadata$NPDX2=="",]$NPDX2 <- NA
 metadata[metadata$Braak=="",]$Braak <- NA
-metadata[metadata$CTE=="",]$CTE <- NA
 
-for(i1 in FDR) {
-  for(i2 in c(1:(length(PG)))) {
-    min_value <- PGx[i2]
-    
-    for(i3 in PTMs) {
-      ptmselect <- i3
-      for(i5 in Cleavages) {
-        cleavageselect <- i5
-        for(i4 in group) {
-          group_disease <- i4
-          PTMfile <- paste("C:/Work/Tau_comparisonpaper/FigureScripts/FINALSet/PPc_COMPLETE_cutoff_0-",i1,"FDR_reformat_XX.csv",sep="")
-          Cleavagefile <- paste("C:/Work/Tau_comparisonpaper/FigureScripts/FINALSet/PPc_COMPLETE_cutoff_0-",i1,"FDR_reformat_XX_C.csv",sep="")
-          PTMclustered <- paste("C:/Work/Tau_comparisonpaper/FigureScripts/FINALSet/PAPER_READY/Figure3/PPc_PTMs_0-",i1,"FDR_clustered_",ptmselect,".csv",sep="")
-          Cleavageclustered <- paste("C:/Work/Tau_comparisonpaper/FigureScripts/FINALSet/PAPER_READY/Figure3/PPc_Cleavages_0-",i1,"FDR_clustered_",ptmselect,".csv",sep="")
-          outfile <- paste("C:/Users/Teaching/Desktop/BCH/Cell_September2025/Code-Data/outputfigure/PTM-Cleavage_Cluster_COMPLETE_euclidean-warD_",i4,"-",i5,"_minFreq-",PG[i2],"_",i3,"_XXX_reorder_new10_20250127.pdf",sep="")
-          outfile2 <- paste("C:/Users/Teaching/Desktop/BCH/Cell_September2025/Code-Data/outputfigure/PTM-Cleavage_Cluster_COMPLETE_euclidean-warD_",i4,"-",i5,"_minFreq-",PG[i2],"_",i3,"_XXX_reorder_NCterm_new10_20250127.pdf",sep="")
-          outfileC <- paste("C:/Users/Teaching/Desktop/BCH/Cell_September2025/Code-Data/outputfigure/PTM-Cleavage_Cluster_COMPLETE_euclidean-warD_",i4,"-",i5,"_minFreq-",PG[i2],"_",i3,"_XXX_reorder_C_new10_20250127.pdf",sep="")
-          outfileC2 <- paste("C:/Users/Teaching/Desktop/BCH/Cell_September2025/Code-Data/outputfigure/PTM-Cleavage_Cluster_COMPLETE_euclidean-warD_",i4,"-",i5,"_minFreq-",PG[i2],"_",i3,"_XXX_reorder_C_NCterm_new10_20250127.pdf",sep="")
-          outfilelegend <- paste("C:/Users/Teaching/Desktop/BCH/Cell_September2025/Code-Data/outputfigure/PTM-Cleavage_Cluster_COMPLETE_euclidean-warD_",i4,"-",i5,"_minFreq-",PG[i2],"_",i3,"_XXX_reorder_legend_new10_20250127.pdf",sep="")
-          print(outfile)
-          createplot(PTMfile,Cleavagefile,outfile,outfileC,group_disease,min_value,ptmselect,cleavageselect,anno_colors,FALSE,metadata,anno_names,outfile2,outfileC2,PTMclustered,Cleavageclustered,outfilelegend)
-        }
-      }
-    }
-  }
-}
+infilePTMs <- "PP_INSOL_reformat_combine.csv"
+infileCleav <- "PP_INSOL_reformat_combine_C.csv"
+outfilePTMcluster <- "PP_INSOL_PTM_clusters.csv"
+outfileCleavcluster <- "PP_INSOL_Cleavages_clusters.csv"
+      
+outfileFig3A <- "Figure3PanelA.pdf"
+outfileFig3B <- "Figure3PanelB.pdf"
+outfileFigS2A <- "FigureS2PanelA.pdf"
+outfileFigS2B <- "FigureS2PanelB.pdf"
+outfileLegend <- "Figures3AndS2Legend.pdf"
+createplot(infilePTMs,infileCleav,outfileFigS2A,outfileFigS2B,"ALL",10,"ALL","ALL",anno_colors,FALSE,metadata,anno_names,outfileFig3A,outfileFig3B,outfilePTMcluster,outfileCleavcluster,outfileLegend)
 ```
